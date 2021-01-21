@@ -542,10 +542,6 @@ function populate_song_info(all_status) {
 	document.getElementById('random_value').checked = (status.random === '1');
 	document.getElementById('single_value').checked = (status.single === '1');
 	document.getElementById('consume_value').checked = (status.consume === '1');
-
-	if (window.follow_mode) {
-		locate_title(currentsong);
-	}
 }
 
 // TODO: move
@@ -791,7 +787,6 @@ function populate_list(list, list_div, opts) {
 			item.addEventListener('click', (event) => {
 				remove_class_add(list_div, item, 'selected');
 				opts.onclick(info);
-				set_follow_mode(false);
 			});
 		}
 		list_div.appendChild(item);
@@ -1084,9 +1079,7 @@ function populate_queue(queue) {
 		queue_table.appendChild(song_tr);
 	}
 
-	if (window.follow_mode) {
-		current_song_tr.scrollIntoView({behavior: 'smooth', block: 'center'});
-	}
+	current_song_tr.scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
 function update_queue() {
@@ -1151,22 +1144,10 @@ function set_artist_mode(mode) {
 		return Promise.resolve();
 	}
 	window.artist_mode = mode;
-	set_follow_mode(false);
 
 	clear_albums();
 	clear_titles();
 	return get_artists();
-}
-
-function set_follow_mode(bool) {
-	window.follow_mode = bool;
-
-	const follow_mode_input = document.getElementById('follow_mode_input');
-	follow_mode_input.checked = bool;
-
-	if (bool) {
-		locate_title(window.currentsong);
-	}
 }
 
 function check_db_update(info) {
@@ -1365,7 +1346,6 @@ function setup() {
 
 	set_artist_mode('albumartist');
 	set_auto_update(document.getElementById('auto_update_input').checked);
-	set_follow_mode(document.getElementById('follow_mode_input').checked);
 }
 
 window.displayed = {};
