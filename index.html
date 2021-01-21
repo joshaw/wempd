@@ -1,0 +1,581 @@
+ <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>MPD</title>
+<script src="script.js"></script>
+<style>
+:root {
+	/* Dark theme */
+	--text-color: #d1d2d3;
+	--bg-color: #1a1d21;
+	--anchor-color: lightblue;
+	--list-item-bg: #222529;
+	--selected: #1164a3;
+	--btn-bg: var(--bg-color);
+	--btn-bg-active: #0f5a8e;
+	--btn-border: #424145;
+	--btn-border-active: lightgrey;
+	--btn-border-hover: lightblue;
+	--progress-bar: var(--btn-border);
+	--notification: darkgreen;
+	--modal-background: #222a;
+}
+:root.alt-theme {
+	/* Light theme */
+	--text-color: #111;
+	--bg-color: white;
+	--anchor-color: midnightblue;
+	--list-item-bg: #eee;
+	--selected: lightblue;
+	--btn-bg: var(--bg-color);
+	--btn-bg-active: lightblue;
+	--btn-border: #e3e3e3;
+	--btn-border-active: darkblue;
+	--btn-border-hover: darkblue;
+	--progress-bar: var(--selected);
+	--notification: lightgreen;
+	--modal-background: #eee9;
+}
+
+body {
+	background-color: var(--bg-color);
+	color: var(--text-color);
+	display: grid;
+	font-family: sans-serif;
+	font-size: 15px;
+	grid-template-areas:
+		"connection    connection    connection"
+		"progress      progress      progress"
+		"info_controls info_controls info_controls"
+		"artists       albums        titles"
+		"queue_actions queue_actions queue_actions"
+		"queue         queue         queue"
+		;
+	grid-template-columns: 1fr 1fr 1fr;
+	grid-template-rows: auto auto auto 1fr auto auto;
+	height: 98vh;
+	overflow-x: hidden;
+	row-gap: 5px;
+	scrollbar-color: var(--list-item-bg) var(--bg-color);
+}
+
+h2 { margin: 10px 0 3px 0; }
+
+a { color: var(--anchor-color); }
+
+button {
+	background: var(--btn-bg);
+	border-color: var(--btn-border);
+	border-radius: 4px;
+	border-style: solid;
+	border-width: 1px;
+	color: var(--fg-color);
+	cursor: pointer;
+	font-family: sans-serif;
+	font-size: 14px;
+	padding: 0 10px;
+}
+
+button.icon_button {
+	border-color: #aaa;
+	font-family: monospace;
+	padding: 0;
+	width: 2em;
+}
+
+button:hover { border-color: var(--btn-border-hover); }
+
+button:active {
+	background: var(--btn-bg-active);
+	border-color: var(--btn-border);
+}
+
+input[type=text] {
+	background: var(--bg-color);
+	border-color: var(--btn-border);
+	border-radius: 4px;
+	border-style: solid;
+	border-width: 1px;
+	color: var(--fg-color);
+	height: 18px;
+}
+input[type=text]:focus {
+	border-color: var(--btn-border-active);
+}
+
+input[type=checkbox], input[type=radio] { display: none; }
+
+input[type=checkbox] + label,
+input[type=radio] + label {
+	background: var(--btn-bg);
+	border-color: var(--btn-border);
+	border-radius: 4px;
+	border-style: solid;
+	border-width: 1px;
+	cursor: pointer;
+	display: inline-block;
+	font-family: sans-serif;
+	font-size: 14px;
+	padding: 2px 10px;
+}
+
+input[type=radio] + label {
+	border-radius: 0;
+}
+
+input[type=checkbox] + label:hover,
+input[type=radio] + label:hover {
+	border-color: var(--btn-border-hover);
+}
+
+input[type=checkbox]:checked + label,
+input[type=radio]:checked + label {
+	background: var(--btn-bg-active);
+	border-color: var(--btn-border-active);
+}
+
+input[type=checkbox]:active + label,
+input[type=radio]:active + label {
+	background: var(--btn-bg-active);
+	border-color: var(--btn-border-active);
+}
+
+input[type=radio] + label:first-of-type {
+	border-bottom-left-radius: 4px;
+	border-top-left-radius: 4px;
+}
+
+input[type=radio] + label:last-of-type {
+	border-bottom-right-radius: 4px;
+	border-top-right-radius: 4px;
+}
+
+.btn_container {
+	display: flex;
+	gap: 5px;
+	height: 22px;
+}
+
+#info_controls {
+	grid-area: info_controls;
+	display: flex;
+}
+
+#info_controls #albumart {
+	max-height: 66px;
+	margin-right: 5px;
+}
+
+#connection_form { grid-area: connection; }
+
+.hover_menu_wrapper {
+	display: inline-block;
+	position: relative;
+}
+
+.hover_menu_wrapper > div {
+	background: var(--list-item-bg);
+	border-radius: 5px;
+	box-shadow: 2px 2px 1px 0 rgba(0, 0, 0, 0.2);
+	display: none;
+	flex-direction: column;
+	gap: 5px;
+	padding: 10px;
+	position: absolute;
+	z-index: 10;
+}
+
+.hover_menu_wrapper:hover div { display: flex; }
+.hover_menu_wrapper button { height: 100%; }
+
+#song_info { flex-grow: 1; }
+#song_info table td:nth-child(1) { font-weight: bold; }
+
+#cur_song_progress_wrapper { grid-area: progress; }
+#cur_song_progress_wrapper span { margin-top: 2px; }
+
+#cur_song_progress {
+	-webkit-appearance: none;
+	align-self: center;
+	background: var(--progress-bar);
+	border-radius: 4px;
+	display: inline-block;
+	flex-grow: 1;
+	height: 10px;
+	margin: 0 1em;
+	outline: none;
+}
+
+#cur_song_info { font-family: monospace; }
+
+#volume_slider { vertical-align: middle; }
+#volume_label {
+	display: inline-block;
+	width: 1.5em;
+}
+
+#song_controls #search_form { padding-top: 5px; }
+
+#artist-list, #album-list, #title-list { overflow-y: scroll; }
+#artist-list { grid-area: artists; }
+#album-list { grid-area: albums; }
+#title-list { grid-area: titles; }
+
+.item_list p {
+	background: var(--list-item-bg);
+	cursor: pointer;
+	margin: 2px;
+	position: relative;
+	word-wrap: anywhere;
+}
+
+.item_list .btn_container {
+	visibility: hidden;
+	height: 100%;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+.item_list p:hover .btn_container { visibility: initial; }
+.item_list .selected { background: var(--selected); }
+
+#queue_actions { grid-area: queue_actions; }
+
+#queue_wrapper {
+	grid-area: queue;
+	max-height: 15em;
+	overflow-y: scroll;
+}
+
+#queue {
+	 border-collapse: collapse;
+	 position: relative;
+}
+
+#queue th {
+	background: var(--bg-color);
+	position: sticky;
+	text-align: left;
+	top: 0;
+}
+
+#queue th, #queue td { padding: 1px 5px; }
+#queue td:nth-child(2), #queue td:nth-child(6) { text-align: right; }
+#queue .current { background: var(--selected); }
+#queue button { visibility: hidden; }
+#queue .current button { visibility: initial; }
+#queue :hover button { visibility: initial; }
+
+#logger {
+	bottom: 0;
+	right: 0;
+	position: absolute;
+	z-index: 10;
+}
+
+#logger p {
+	background: var(--notification);
+	border-radius: 5px;
+	cursor: pointer;
+	margin: 10px;
+	padding: 10px;
+	position: relative;
+}
+
+@keyframes remove-popup { 100% { transform: translate(150%); } }
+#logger p.removing {
+	animation-duration: 80ms;
+	animation-fill-mode: forwards;
+	animation-name: remove-popup;
+	animation-timing-function: ease-in;
+}
+
+#error-message {
+	display: none;
+	position: absolute;
+	top: 10%;
+	left: 50%;
+	transform: translate(-50%);
+	background: #eee;
+	padding: 30px;
+	border: solid 1px #aaa;
+	box-shadow: 3px 4px 10px 0 #eee;
+}
+
+#modal_background {
+	display: none;
+	background: var(--modal-background);
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+#modal {
+	background: var(--bg-color);
+	border-radius: 5px;
+	border: solid 1px var(--btn-border);
+	display: none;
+	flex-direction: column;
+	left: 50%;
+	max-height: 80%;
+	padding: 30px;
+	position: absolute;
+	top: 7.5%;
+	transform: translate(-50%);
+	width: 75%;
+}
+
+#modal .close_button {
+	position: absolute;
+	right: 30px;
+}
+
+#modal .modal_content { overflow-y: scroll; }
+
+#modal table td:nth-child(1) {
+	padding-right: 1em;
+	font-weight: bold;
+}
+
+#modal img {
+	max-height: 75vh;
+	object-fit: contain;
+}
+
+#modal .summary {
+	margin: 0 80px 20px 0;
+	display: flex;
+	justify-content: space-between;
+}
+
+#modal .outputs_modal span { margin: 5px; }
+#modal .outputs_modal span[data-type]::before {
+	content: attr(data-type) ': ';
+	color: grey;
+}
+
+#context_menu {
+	background: var(--list-item-bg);
+	border-radius: 5px;
+	border: solid 1px #aaa;
+	box-shadow: 2px 2px 1px 0 rgba(0, 0, 0, 0.2);
+	display: none;
+	position: absolute;
+}
+
+#context_menu p {
+	cursor: pointer;
+	margin: 3px;
+}
+#context_menu p:hover { background: var(--selected); }
+</style>
+<body>
+	<form id="connection_form" class="btn_container">
+		<label for="hostname">Hostname</label>
+		<input type="text" id="hostname_input" name="hostname" size="16" required/>
+		<label for="port">Port</label>
+		<input type="text" id="port_input" name="port" min="1" max="65535" size="4"/>
+		<button
+			id="connection_submit"
+			title="Connect to MPD instance"
+			type="submit">
+			Connect
+		</button>
+		<span>&nbsp;</span>
+		<button
+			id="stats-button"
+			onclick="get_and_show_stats()"
+			title="Database statistics"
+			type="button">
+			Stats
+		</button>
+
+		<input
+			autocomplete="off"
+			checked
+			id="auto_update_input"
+			onchange="set_auto_update(this.checked)"
+			type="checkbox"
+		></input>
+		<label for="auto_update_input">&#x27F3;&#xFE0E;</label>
+
+		<input
+			autocomplete="off"
+			checked
+			id="follow_mode_input"
+			onchange="set_follow_mode(this.checked)"
+			type="checkbox"
+		></input>
+		<label for="follow_mode_input">Follow</label>
+
+		<div class="hover_menu_wrapper">
+			<button type="button">Options</button>
+			<div>
+				<input
+					id="repeat_value"
+					onchange="set_option('repeat', this.checked)"
+					type="checkbox"
+					></input>
+				<label for="repeat_value">Repeat</label>
+				<input
+					id="random_value"
+					onchange="set_option('random', this.checked)"
+					type="checkbox"
+					></input>
+				<label for="random_value">Random</label>
+				<input
+					id="single_value"
+					onchange="set_option('single', this.checked)"
+					type="checkbox"
+					></input>
+				<label for="single_value">Single</label>
+				<input
+					id="consume_value"
+					onchange="set_option('consume', this.checked)"
+					type="checkbox"
+					></input>
+				<label for="consume_value">Consume</label>
+
+				<div>
+					<input
+						checked
+						id="albumartist_mode"
+						name="artist_mode"
+						onchange="this.checked && set_artist_mode('albumartist')"
+						type="radio"
+					><label for="albumartist_mode" title="Album artists mode">
+						AA
+					</label><input
+						id="artist_mode"
+						name="artist_mode"
+						onchange="this.checked && set_artist_mode('artist')"
+						type="radio"
+					><label for="artist_mode" title="Artists mode">
+						A
+					</label>
+				</div>
+
+				<div>
+					<input
+						id="light_mode"
+						name="theme"
+						onchange="this.checked && toggle_theme()"
+						type="radio"
+					><label for="light_mode" title="Light mode">
+						Light
+					</label><input
+						checked
+						id="dark_mode"
+						name="theme"
+						onchange="this.checked && toggle_theme()"
+						type="radio"
+					><label for="dark_mode" title="Dark mode">
+						Dark
+					</label>
+				</div>
+
+				<button
+					id="outputs-button"
+					onclick="get_and_show_outputs()"
+					title="Outputs"
+					type="button">
+					Outputs
+				</button>
+			</div>
+		</div>
+	</form>
+
+	<div id="cur_song_progress_wrapper" class="btn_container">
+		<span id="cur_song_elapsed">0:00</span>
+		<input type="range" id="cur_song_progress" step="0.01" min="0"></input>
+		<span id="cur-song-duration"></span>
+		<span>&nbsp;</span>
+		<button id="pause_button" type="button" onclick="pause()">Pause</button>
+		<button id="stop_button" type="button" onclick="stop()">&#x23F9;&#xFE0E;</button>
+		<button id="prev_button" type="button" onclick="prev()">&#x23EA;&#xFE0E;</button>
+		<button id="next_button" type="button" onclick="next()">&#x23E9;&#xFE0E;</button>
+		<button id="cur_song_info" type="button" title="Show song information">i</button>
+	</div>
+
+	<div id="info_controls">
+		<div>
+			<img id="albumart"/>
+		</div>
+
+		<div id="song_info">
+			<table>
+				<tr><td>Title: </td><td id="cur_title"></td></tr>
+				<tr><td>Album: </td><td id="cur_album"></td></tr>
+				<tr><td>Artist: </td><td id="cur_artist"></td></tr>
+			</table>
+		</div>
+
+		<div id="song_controls">
+			<div>
+				Vol:
+				<input type="range" id="volume_slider" step="1" min="0" max="100" title="Volume"></input>
+				<span id="volume_label"></span>
+				<button id="volume_down" class="left" title="Volume down">
+					-
+				</button>
+				<button id="volume_up" class="right" title="Volume up">
+					+
+				</button>
+			</div>
+
+			<div>
+				<input
+					checked
+					autocomplete="off"
+					id="library_mode"
+					class="hidden"
+					name="display_mode"
+					onchange="this.checked && set_display_mode('library')"
+					type="radio"
+				><label for="library_mode">
+					Library
+				</label><input
+					autocomplete="off"
+					id="playlists_mode"
+					class="hidden"
+					name="display_mode"
+					onchange="this.checked && set_display_mode('playlists')"
+					type="radio"
+				><label for="playlists_mode">
+					Playlists
+				</label>
+			</div>
+
+			<form id="search_form" class="btn_container">
+				<input type="text" id="search_input" name="query" size="16"/>
+				<button id="search_submit" type="submit">Search</button>
+			</form>
+		</div>
+	</div>
+
+	<div id="artist-list" class="item_list"></div>
+	<div id="album-list" class="item_list"></div>
+	<div id="title-list" class="item_list"></div>
+
+	<div id="queue_actions" class="btn_container">
+		Playlist:
+		<button title="Clear playlist" onclick="clear_playlist()">Clear</button>
+		<button title="Remove songs before current in playlist" onclick="clear_playlist_before_current()">Clear before current</button>
+		<button title="Shuffle playlist" onclick="shuffle_playlist()">Shuffle</button>
+	</div>
+
+	<div id="queue_wrapper">
+		<table id="queue"></table>
+	</div>
+
+	<div id="logger"></div>
+
+	<div id="modal_background"></div>
+	<div id="modal"></div>
+	<div id="context_menu"></div>
+	<p id="error-message"></p>
+</body>
+</head>
