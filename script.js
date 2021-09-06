@@ -388,6 +388,19 @@ function get_info_panel(info) {
 
 		info_table.appendChild(create_table_row([key, value]));
 	}
+
+	const albumart = document.getElementById('albumart').cloneNode();
+	if (window.currentsong.album === info.album && albumart) {
+		albumart.style.float = 'left';
+		albumart.style.maxWidth = '300px';
+		albumart.style.paddingRight = '10px';
+
+		const div = document.createElement("div");
+		div.appendChild(albumart);
+		div.appendChild(info_table);
+		return div;
+	}
+
 	return info_table;
 }
 
@@ -492,6 +505,18 @@ function populate_song_info(all_status) {
 		document.title = 'MPD';
 	}
 
+	// Album Art
+	if (cur_file) {
+		if (!window.cur_file || window.cur_file !== cur_file) {
+			window.cur_file = cur_file;
+			fetch_blob('art', {file: cur_file})
+				.then((resp) => (resp.status === 200) ? resp.blob() : null)
+				.then(set_albumart);
+		}
+	} else {
+		set_albumart(null);
+	}
+
 	// Title
 	const cur_title_el = document.getElementById('cur_title');
 	remove_children(cur_title_el);
@@ -516,17 +541,6 @@ function populate_song_info(all_status) {
 	const cur_artist_el = document.getElementById('cur_artist');
 	remove_children(cur_artist_el);
 	append_artist_links(currentsong, cur_artist_el);
-
-	if (cur_file) {
-		if (!window.cur_file || window.cur_file !== cur_file) {
-			window.cur_file = cur_file;
-			fetch_blob('art', {file: cur_file})
-				.then((resp) => (resp.status === 200) ? resp.blob() : null)
-				.then(set_albumart);
-		}
-	} else {
-		set_albumart(null);
-	}
 
 	const cur_song_info = document.getElementById('cur_song_info');
 	cur_song_info.onclick = () => { show_info_panel(currentsong); };
@@ -1350,9 +1364,11 @@ function set_albumart(blob) {
 		const objurl = URL.createObjectURL(blob);
 		img.src = objurl;
 		img.style.display = 'initial';
+		img.style.cursor = 'pointer';
 	} else {
 		img.src = '';
 		img.style.display = 'none';
+		img.style.cursor = 'initial';
 	}
 }
 
@@ -1494,8 +1510,9 @@ function setup() {
 	// Album art view
 	const albumart = document.getElementById('albumart');
 	albumart.addEventListener('click', () => {
-		const clone = albumart.cloneNode();
-		display_modal(clone);
+		//const clone = albumart.cloneNode();
+		//display_modal(clone);
+		show_info_panel(currentsong);
 	});
 
 	// Progress meter and label
