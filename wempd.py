@@ -1,13 +1,17 @@
 import http.server
-import urllib.parse
-import mpd
 import json
 import logging
+import mpd
+import os
+import urllib.parse
 
 logging.basicConfig(level=logging.INFO)
 
 
 def init_client(hostname="localhost", port=6600):
+    hostname = os.getenv("WEMPD_MPD_HOSTNAME", "localhost")
+    port = int(os.getenv("WEMPD_MPD_PORT", "6600"))
+
     client = mpd.MPDClient()
     client.connect(hostname, port)
 
@@ -478,8 +482,8 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 try:
-    hostname = "0.0.0.0"
-    port = 8010
+    hostname = os.getenv("WEMPD_LISTEN_ADDRESS", "0.0.0.0")
+    port = int(os.getenv("WEMPD_LISTEN_PORT", "8010"))
     print(f"Listening on: {hostname}:{port}")
     httpd = http.server.HTTPServer((hostname, port), MPDRequestHandler)
     httpd.serve_forever()
