@@ -1401,18 +1401,6 @@ function shuffle_queue() {
 	post_json('shuffle').then(update_queue);
 }
 
-function connect(hostname, port) {
-	return post_json('connect', {hostname, port})
-		.then((result) => {
-			console.log(result);
-			document.getElementById('hostname_input').value = result.hostname;
-			document.getElementById('port_input').value = result.port;
-			localStorage.setItem('hostname', result.hostname);
-			localStorage.setItem('port', result.port);
-			notify(`Connected to ${result.hostname}:${result.port}`);
-		});
-}
-
 function set_auto_update(value) {
 	if (value) { // Enable
 		if (! window.update_interval) {
@@ -1502,20 +1490,6 @@ function setup() {
 
 	window.addEventListener('keyup', hide_modal);
 	document.getElementById('modal_background').addEventListener('click', hide_modal);
-
-	const stored_hostname = localStorage.getItem('hostname');
-	const stored_port = localStorage.getItem('port');
-	if (stored_hostname) {
-		connect(stored_hostname, stored_port);
-	}
-
-	document.getElementById('connection_form').addEventListener('submit', (e) => {
-		e.preventDefault();
-		const hostname = e.target.elements.hostname.value;
-		const port = e.target.elements.port.value;
-		connect(hostname, port).then(() => set_display_mode('library'));
-		refresh().then((info) => locate_title(info.currentsong));
-	});
 
 	// Album art view
 	const albumart = document.getElementById('albumart');

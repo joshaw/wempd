@@ -160,29 +160,6 @@ def remove_path_prefix(path):
 
 class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
     client = init_client()
-    hostname = "localhost"
-    port = "6600"
-
-    def connect(self, hostname=None, port=None):
-        changed = False
-        if hostname and hostname != MPDRequestHandler.hostname:
-            MPDRequestHandler.hostname = hostname
-            changed = True
-        if port and port != MPDRequestHandler.port:
-            MPDRequestHandler.port = port
-            changed = True
-
-        if changed:
-            MPDRequestHandler.client = init_client(
-                MPDRequestHandler.hostname, MPDRequestHandler.port
-            )
-        else:
-            try:
-                _ = self.client.ping()
-            except mpd.base.ConnectionError:
-                MPDRequestHandler.client = init_client(
-                    MPDRequestHandler.hostname, MPDRequestHandler.port
-                )
 
     def return_json(self, data, code=200):
         self.send_headers(content_type="application/json", code=code)
@@ -222,8 +199,6 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_headers(content_type="application/javascript")
                 self.wfile.write(f.read().encode("utf-8"))
                 return
-
-        self.connect()
 
         # API
         if path == "/albumartists":
@@ -307,29 +282,6 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
         length = int(self.headers["Content-Length"])
         post_data = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-
-        if path == "/connect":
-            try:
-                hostname = post_data.get("hostname", self.hostname)
-                port = post_data.get("port", self.port)
-                self.connect(hostname, port)
-                self.return_json(
-                    {
-                        "hostname": self.client._sock.getpeername()[0],
-                        "port": self.client._sock.getpeername()[1],
-                        "version": self.client.mpd_version,
-                    }
-                )
-            except KeyError:
-                self.return_json_fail("Missing hostname or port")
-            except ConnectionRefusedError:
-                self.return_json_fail(f"Could not connect to {hostname}:{port}")
-            except OSError:
-                self.return_json_fail(f"Could not connect to {hostname}:{port}")
-
-            return
-
-        self.connect()
 
         if path == "/add":
             try:

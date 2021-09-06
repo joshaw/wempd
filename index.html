@@ -391,18 +391,7 @@ input[type=radio] + label:last-of-type {
 #context_menu p:hover { background: var(--selected); }
 </style>
 <body>
-	<form id="connection_form" class="hflex">
-		<label for="hostname">Hostname</label>
-		<input type="text" id="hostname_input" name="hostname" size="13" required/>
-		<label for="port">Port</label>
-		<input type="text" id="port_input" name="port" min="1" max="65535" size="3"/>
-		<button
-			id="connection_submit"
-			title="Connect to MPD instance"
-			type="submit">
-			Connect
-		</button>
-		<span>&nbsp;</span>
+	<div id="connection_form" class="hflex">
 		<button
 			id="stats-button"
 			onclick="get_and_show_stats()"
@@ -495,7 +484,46 @@ input[type=radio] + label:last-of-type {
 				</button>
 			</div>
 		</div>
-	</form>
+
+		<span>&nbsp;</span>
+		<div>
+			Mode:
+			<input
+				checked
+				autocomplete="off"
+				id="library_mode"
+				class="hidden"
+				name="display_mode"
+				onchange="this.checked && set_display_mode('library')"
+				type="radio"
+			><label for="library_mode">
+				Library
+			</label><input
+				autocomplete="off"
+				id="playlists_mode"
+				class="hidden"
+				name="display_mode"
+				onchange="this.checked && set_display_mode('playlists')"
+				type="radio"
+			><label for="playlists_mode">
+				Playlists
+			</label>
+		</div>
+
+		<span>&nbsp;</span>
+		<form id="search_form" class="hflex">
+			<label for="search_input">Search:</label>
+			<input type="text" id="search_input" name="query" size="12"/>
+			<select name="field">
+				<option value="title">Title</option>
+				<option value="artist">Artist</option>
+				<option value="albumartist">AA</option>
+				<option value="album">Album</option>
+				<option value="genre">Genre</option>
+			</select>
+			<button id="search_submit" type="submit">Search</button>
+		</form>
+	</div>
 
 	<div id="cur_song_progress_wrapper" class="hflex">
 		<span id="cur_song_elapsed">0:00</span>
@@ -529,41 +557,6 @@ input[type=radio] + label:last-of-type {
 				<span id="volume_label"></span>
 				<button id="volume_down" title="Volume down"></button>
 				<button id="volume_up" title="Volume up"></button>
-			</div>
-
-			<form id="search_form" class="hflex">
-				<input type="text" id="search_input" name="query" size="12"/>
-				<select name="field">
-					<option value="title">Title</option>
-					<option value="artist">Artist</option>
-					<option value="albumartist">AA</option>
-					<option value="album">Album</option>
-					<option value="genre">Genre</option>
-				</select>
-				<button id="search_submit" type="submit">Search</button>
-			</form>
-
-			<div>
-				<input
-					checked
-					autocomplete="off"
-					id="library_mode"
-					class="hidden"
-					name="display_mode"
-					onchange="this.checked && set_display_mode('library')"
-					type="radio"
-				><label for="library_mode">
-					Library
-				</label><input
-					autocomplete="off"
-					id="playlists_mode"
-					class="hidden"
-					name="display_mode"
-					onchange="this.checked && set_display_mode('playlists')"
-					type="radio"
-				><label for="playlists_mode">
-					Playlists
-				</label>
 			</div>
 		</div>
 	</div>
