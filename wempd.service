@@ -1,0 +1,11 @@
+[Unit]
+Description=Web MPD Controller
+After=network.target
+
+[Service]
+SyslogIdentifier=wempd
+ExecStart=/usr/bin/python3 -u wempd.py
+WorkingDirectory=/home/josh/wempd
+
+[Install]
+WantedBy=multi-user.target

@@ -4,7 +4,7 @@ import mpd
 import json
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def init_client(hostname="localhost", port=6600):
@@ -29,7 +29,7 @@ def get_status(client):
 
 def info_pairs(data, allowed_fields=None):
     cmd = []
-    fields = {"artist", "albumartist", "album", "title", "name", "file"}
+    fields = {"artist", "albumartist", "album", "title", "name", "file", "group"}
     if not allowed_fields:
         allowed_fields = fields
 
@@ -148,6 +148,16 @@ def insert(client, query, append=False):
     return count
 
 
+PREFIX = '/mpd'
+def remove_path_prefix(path):
+    if path.startswith(PREFIX):
+        new_path = path[len(PREFIX):]
+        if not new_path:
+            new_path = '/'
+        return new_path
+    return path
+
+
 class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
     client = init_client()
     hostname = "localhost"
@@ -180,7 +190,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def return_json_fail(self, msg):
         print(f"Error: {msg}")
-        self.return_json({"Error": msg}, code=400)
+        self.return_json({"error": msg}, code=400)
 
     def send_headers(self, content_type="text/html", code=200):
         self.send_response(code)
@@ -190,24 +200,63 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         path_explode = urllib.parse.urlparse(self.path)
-        path = path_explode.path
+        orig_path = path_explode.path
+        path = remove_path_prefix(orig_path)
         query = urllib.parse.parse_qs(path_explode.query, keep_blank_values=True)
         query = {k: v[-1] for k, v in query.items()}
 
-        self.connect()
-
+        # Files
         if path == "/":
             with open("index.html", "r") as f:
                 self.send_headers()
                 self.wfile.write(f.read().encode("utf-8"))
+                return
 
-        elif path == "/script.js":
+        if path == "/favicon.ico":
+            self.send_response(200)
+            self.end_headers()
+            return
+
+        if path == "/script.js":
             with open("script.js", "r") as f:
                 self.send_headers(content_type="application/javascript")
                 self.wfile.write(f.read().encode("utf-8"))
+                return
 
-        elif path == "/status":
-            self.return_json(get_status(self.client))
+        self.connect()
+
+        # API
+        if path == "/albumartists":
+            self.return_json(list_albumartists(self.client))
+
+        elif path == "/albums":
+            self.return_json(list_albums(self.client, query))
+
+        elif path == "/art":
+            if not "file" in query:
+                self.return_json_fail("Missing 'file' parameter")
+                return
+
+            try:
+                if self.client.mpd_version >= "0.22.0":
+                    pic = self.client.readpicture(query["file"])
+                else:
+                    pic = self.client.albumart(query["file"])
+
+                binary = pic["binary"]
+                self.send_headers(content_type=pic.get("type", "image/jpg"), code=200)
+                self.wfile.write(binary)
+            except (KeyError, mpd.base.CommandError):
+                self.return_json({"Error": "No file exists"}, code=204)
+
+        elif path == "/artists":
+            self.return_json(list_artists(self.client))
+
+        elif path == "/count":
+            try:
+                self.return_json(self.client.count(*info_pairs(query)))
+            except mpd.base.CommandError as e:
+                self.return_json_fail(str(e))
 
         elif path == "/info":
             if "pos" in query:
@@ -221,80 +270,45 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             else:
                 self.return_json_fail("Could not find details")
 
-        elif path == "/stats":
-            stats = self.client.stats()
-            stats["updating_db"] = self.client.status().get("updating_db")
-            self.return_json(stats)
-
-        elif path == "/artists":
-            self.return_json(list_artists(self.client))
-
-        elif path == "/albumartists":
-            self.return_json(list_albumartists(self.client))
-
-        elif path == "/albums":
-            self.return_json(list_albums(self.client, query))
-
-        elif path == "/titles":
-            self.return_json(list_titles(self.client, query))
+        elif path == "/outputs":
+            self.return_json(self.client.outputs())
 
         elif path == "/search":
             try:
-                lst = self.client.search("title", query["query"])
+                lst = self.client.search(query["field"], query["query"])
                 self.return_json(simplify_title_list(lst))
-            except ValueError:
-                self.return_json_fail("Missing parameter, 'query'")
-
-        elif path == "/queue":
-            self.return_json(list_queue(self.client))
+            except KeyError:
+                self.return_json_fail("Missing parameter, 'query', or 'field'")
 
         elif path == "/playlists":
             self.return_json(list_playlists(self.client))
 
-        elif path == "/art":
-            if not "file" in query:
-                self.return_json_fail("Missing 'file' parameter")
-                return
+        elif path == "/queue":
+            self.return_json(list_queue(self.client))
 
-            try:
-                if self.client.mpd_version >= "0.22.0":
-                    pic = self.client.readpicture(query["file"])
-                else:
-                    pic = self.client.albumart(query["file"])
+        elif path == "/stats":
+            stats = self.client.stats()
+            stats["mpd_version"] = self.client.mpd_version
+            stats["updating_db"] = self.client.status().get("updating_db")
+            self.return_json(stats)
 
-                self.send_headers(content_type=pic.get("type", "image/jpg"), code=200)
-                self.wfile.write(pic["binary"])
-            except (KeyError, mpd.base.CommandError):
-                self.return_json({"Error": "No file exists"}, code=204)
+        elif path == "/status":
+            self.return_json(get_status(self.client))
 
-        elif path == "/outputs":
-            self.return_json(self.client.outputs())
-
-        elif path == "/favicon.ico":
-            self.send_response(200)
-            self.end_headers()
+        elif path == "/titles":
+            self.return_json(list_titles(self.client, query))
 
         else:
             self.return_json_fail(f"Unrecognised GET path: {path}")
 
     def do_POST(self):
         path_explode = urllib.parse.urlparse(self.path)
-        path = path_explode.path
+        path = remove_path_prefix(path_explode.path)
 
         length = int(self.headers["Content-Length"])
         post_data = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
 
-        self.connect()
-
-        if path == "/append":
-            self.return_json({"appended": insert(self.client, post_data, append=True)})
-
-        elif path == "/clear":
-            count = len(self.client.playlist())
-            self.client.clear()
-            self.return_json({"removed": count})
-
-        elif path == "/connect":
+        if path == "/connect":
             try:
                 hostname = post_data.get("hostname", self.hostname)
                 port = post_data.get("port", self.port)
@@ -313,6 +327,28 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             except OSError:
                 self.return_json_fail(f"Could not connect to {hostname}:{port}")
 
+            return
+
+        self.connect()
+
+        if path == "/add":
+            try:
+                entry = post_data["entry"]
+                self.client.add(entry)
+                self.return_json({"added": 1})
+            except KeyError:
+                self.return_json_fail("Missing parameter, 'entry'")
+            except mpd.base.CommandError as e:
+                self.return_json_fail(str(e))
+
+        elif path == "/append":
+            self.return_json({"appended": insert(self.client, post_data, append=True)})
+
+        elif path == "/clear":
+            count = len(self.client.playlist())
+            self.client.clear()
+            self.return_json({"removed": count})
+
         elif path == "/consume":
             state = post_data.get("enabled", ["1"])
 
@@ -324,24 +360,24 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.return_json({})
 
         elif path == "/delete":
+            len_before = len(self.client.playlist())
             try:
-                pos_from = post_data['from']
-                pos_to = post_data['to']
+                pos_from = max(0, post_data["from"])
+                pos_to = min(post_data["to"], len_before)
             except KeyError:
                 self.return_json_fail("Missing parameter 'from' or 'to'")
 
-            len_before = len(self.client.playlist())
             self.client.delete((pos_from, pos_to))
             len_after = len(self.client.playlist())
             self.return_json({"removed": len_before - len_after})
 
-        elif path == '/disableoutput' or path == '/enableoutput':
+        elif path == "/disableoutput" or path == "/enableoutput":
             try:
-                outputid = post_data['outputid']
+                outputid = post_data["outputid"]
             except KeyError:
                 self.return_json_fail("Missing parameter 'outputid'")
 
-            if path == '/enableoutput':
+            if path == "/enableoutput":
                 self.client.enableoutput(outputid)
             else:
                 self.client.disableoutput(outputid)
@@ -351,15 +387,21 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.return_json({"inserted": insert(self.client, post_data)})
 
         elif path == "/next":
-            self.client.next()
-            self.return_json({})
+            try:
+                 self.client.next()
+                 self.return_json({})
+            except mpd.base.CommandError as e:
+                 self.return_json_fail(str(e))
 
         elif path == "/pause":
-            if self.client.status()["state"] == "stop" and self.client.playlist():
-                self.client.play(0)
-            else:
-                self.client.pause()
-            self.return_json({})
+            try:
+                if self.client.status()["state"] == "stop" and self.client.playlist():
+                    self.client.play(0)
+                else:
+                    self.client.pause()
+                self.return_json({})
+            except mpd.base.CommandError as e:
+                 self.return_json_fail(str(e))
 
         elif path == "/play":
             try:
@@ -397,6 +439,10 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
             self.return_json({"removed": removed})
 
+        elif path == "/removeplaylist":
+            self.client.rm(post_data["playlist"])
+            self.return_json({"removed": post_data["playlist"]})
+
         elif path == "/repeat":
             state = post_data.get("enabled", ["1"])
 
@@ -406,6 +452,16 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
             self.client.repeat(state)
             self.return_json({})
+
+        elif path == "/save":
+            try:
+                name = post_data["name"]
+                self.client.save(name)
+                self.return_json({"saved": name})
+            except KeyError:
+                self.return_json_fail("Missing parameter, 'name'")
+            except mpd.base.CommandError as e:
+                self.return_json_fail(str(e))
 
         elif path == "/seek":
             if "time" in post_data:
@@ -449,18 +505,21 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.return_json({})
 
         elif path == "/volume":
-            if "volume" in post_data:
-                # Adjust relative volume
-                vol = int(post_data["volume"])
-                self.client.volume(vol)
+            try:
+                if "volume" in post_data:
+                    # Adjust relative volume
+                    vol = int(post_data["volume"])
+                    self.client.volume(vol)
 
-            elif "setvol" in post_data:
-                # Set new absolute volume
-                vol = int(post_data["setvol"])
-                self.client.setvol(vol)
+                elif "setvol" in post_data:
+                    # Set new absolute volume
+                    vol = int(post_data["setvol"])
+                    self.client.setvol(vol)
 
-            new_volume = self.client.status()["volume"]
-            self.return_json({"volume": new_volume})
+                new_volume = self.client.status()["volume"]
+                self.return_json({"volume": new_volume})
+            except mpd.base.CommandError as e:
+                self.return_json_fail(str(e))
 
         else:
             self.return_json_fail(f"Unrecognised POST path: {path}")

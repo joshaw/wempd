@@ -7,7 +7,8 @@
 <style>
 :root {
 	/* Dark theme */
-	--text-color: #d1d2d3;
+	--fg-color: #d1d2d3;
+	--fg-disabled: #5b5b5b;
 	--bg-color: #1a1d21;
 	--anchor-color: lightblue;
 	--list-item-bg: #222529;
@@ -23,7 +24,8 @@
 }
 :root.alt-theme {
 	/* Light theme */
-	--text-color: #111;
+	--fg-color: #111;
+	--fg-disabled: #c8c8c8;
 	--bg-color: white;
 	--anchor-color: midnightblue;
 	--list-item-bg: #eee;
@@ -38,19 +40,20 @@
 	--modal-background: #eee9;
 }
 
+*, *:before, *:after { box-sizing: border-box; }
+
 body {
 	background-color: var(--bg-color);
-	color: var(--text-color);
+	color: var(--fg-color);
 	display: grid;
-	font-family: sans-serif;
-	font-size: 15px;
+	fill: var(--fg-color);
 	grid-template-areas:
 		"connection    connection    connection"
 		"progress      progress      progress"
 		"info_controls info_controls info_controls"
 		"artists       albums        titles"
-		"queue_actions queue_actions queue_actions"
 		"queue         queue         queue"
+		"queue_actions queue_actions queue_actions"
 		;
 	grid-template-columns: 1fr 1fr 1fr;
 	grid-template-rows: auto auto auto 1fr auto auto;
@@ -60,11 +63,21 @@ body {
 	scrollbar-color: var(--list-item-bg) var(--bg-color);
 }
 
+body, input, select, textarea, button, label {
+	font-family: sans-serif;
+	font-size: 15px;
+}
+
 h2 { margin: 10px 0 3px 0; }
 
 a { color: var(--anchor-color); }
 
-button {
+table { border-collapse: collapse; }
+tr:nth-child(even) { background: var(--list-item-bg); }
+th { text-align: left; }
+th, td { padding: 2px 10px; }
+
+button, select {
 	background: var(--btn-bg);
 	border-color: var(--btn-border);
 	border-radius: 4px;
@@ -72,24 +85,19 @@ button {
 	border-width: 1px;
 	color: var(--fg-color);
 	cursor: pointer;
-	font-family: sans-serif;
-	font-size: 14px;
-	padding: 0 10px;
+	padding: 2px 10px;
+	min-height: 26px;
 }
 
-button.icon_button {
-	border-color: #aaa;
-	font-family: monospace;
-	padding: 0;
-	width: 2em;
-}
-
+select { appearance: none; }
 button:hover { border-color: var(--btn-border-hover); }
 
 button:active {
 	background: var(--btn-bg-active);
 	border-color: var(--btn-border);
 }
+
+button:disabled { fill: var(--fg-disabled); }
 
 input[type=text] {
 	background: var(--bg-color);
@@ -98,12 +106,13 @@ input[type=text] {
 	border-style: solid;
 	border-width: 1px;
 	color: var(--fg-color);
-	height: 18px;
+	padding: 2px 8px;
 }
-input[type=text]:focus {
-	border-color: var(--btn-border-active);
+input[type=text]:focus, input[type=text]:hover {
+	border-color: var(--btn-border-hover);
 }
 
+label { align-self: center; }
 input[type=checkbox], input[type=radio] { display: none; }
 
 input[type=checkbox] + label,
@@ -114,14 +123,9 @@ input[type=radio] + label {
 	border-style: solid;
 	border-width: 1px;
 	cursor: pointer;
-	display: inline-block;
-	font-family: sans-serif;
-	font-size: 14px;
+	min-height: 26px;
 	padding: 2px 10px;
-}
-
-input[type=radio] + label {
-	border-radius: 0;
+	text-align: center;
 }
 
 input[type=checkbox] + label:hover,
@@ -141,6 +145,8 @@ input[type=radio]:active + label {
 	border-color: var(--btn-border-active);
 }
 
+input[type=radio] + label { border-radius: 0; }
+
 input[type=radio] + label:first-of-type {
 	border-bottom-left-radius: 4px;
 	border-top-left-radius: 4px;
@@ -151,10 +157,45 @@ input[type=radio] + label:last-of-type {
 	border-top-right-radius: 4px;
 }
 
+.hflex {
+	align-items: center;
+	align-self: stretch;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+
+.vflex {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
 .btn_container {
 	display: flex;
+	flex-wrap: wrap;
+	align-items: stretch;
 	gap: 5px;
-	height: 22px;
+}
+
+.svg-icon {
+	width: 0.8em;
+	height: 0.8em;
+}
+
+.hover-display-wrapper {
+	position: relative;
+}
+.hover-display {
+	position: absolute;
+	top: 0;
+	right: 0;
+	flex-wrap: nowrap;
+	height: 100%;
+	visibility: hidden;
+}
+.hover-display-wrapper:hover .hover-display {
+	visibility: initial;
 }
 
 #info_controls {
@@ -170,24 +211,22 @@ input[type=radio] + label:last-of-type {
 #connection_form { grid-area: connection; }
 
 .hover_menu_wrapper {
-	display: inline-block;
 	position: relative;
 }
 
 .hover_menu_wrapper > div {
 	background: var(--list-item-bg);
+	border: solid 1px var(--btn-border);
 	border-radius: 5px;
-	box-shadow: 2px 2px 1px 0 rgba(0, 0, 0, 0.2);
 	display: none;
-	flex-direction: column;
-	gap: 5px;
 	padding: 10px;
 	position: absolute;
 	z-index: 10;
 }
 
+.hover_menu_bottom > div { bottom: 25px; }
+
 .hover_menu_wrapper:hover div { display: flex; }
-.hover_menu_wrapper button { height: 100%; }
 
 #song_info { flex-grow: 1; }
 #song_info table td:nth-child(1) { font-weight: bold; }
@@ -200,14 +239,11 @@ input[type=radio] + label:last-of-type {
 	align-self: center;
 	background: var(--progress-bar);
 	border-radius: 4px;
-	display: inline-block;
 	flex-grow: 1;
 	height: 10px;
 	margin: 0 1em;
 	outline: none;
 }
-
-#cur_song_info { font-family: monospace; }
 
 #volume_slider { vertical-align: middle; }
 #volume_label {
@@ -215,7 +251,7 @@ input[type=radio] + label:last-of-type {
 	width: 1.5em;
 }
 
-#song_controls #search_form { padding-top: 5px; }
+#song_controls #search_form { padding-bottom: 5px; }
 
 #artist-list, #album-list, #title-list { overflow-y: scroll; }
 #artist-list { grid-area: artists; }
@@ -226,18 +262,12 @@ input[type=radio] + label:last-of-type {
 	background: var(--list-item-bg);
 	cursor: pointer;
 	margin: 2px;
+	min-height: 26px;
+	padding: 4px 2px;
 	position: relative;
 	word-wrap: anywhere;
 }
 
-.item_list .btn_container {
-	visibility: hidden;
-	height: 100%;
-	position: absolute;
-	right: 0;
-	top: 0;
-}
-.item_list p:hover .btn_container { visibility: initial; }
 .item_list .selected { background: var(--selected); }
 
 #queue_actions { grid-area: queue_actions; }
@@ -248,24 +278,18 @@ input[type=radio] + label:last-of-type {
 	overflow-y: scroll;
 }
 
-#queue {
-	 border-collapse: collapse;
-	 position: relative;
+#queue { width: 100%; }
+#queue tr td:last-child span { visibility: hidden; }
+#queue tr:hover td:last-child span { visibility: initial; }
+
+#queue th, #queue td { padding: 4px 5px; }
+
+#queue td:nth-child(1), #queue th:nth-child(1),
+#queue td:nth-child(5), #queue th:nth-child(5) {
+	text-align: right;
 }
 
-#queue th {
-	background: var(--bg-color);
-	position: sticky;
-	text-align: left;
-	top: 0;
-}
-
-#queue th, #queue td { padding: 1px 5px; }
-#queue td:nth-child(2), #queue td:nth-child(6) { text-align: right; }
 #queue .current { background: var(--selected); }
-#queue button { visibility: hidden; }
-#queue .current button { visibility: initial; }
-#queue :hover button { visibility: initial; }
 
 #logger {
 	bottom: 0;
@@ -297,10 +321,10 @@ input[type=radio] + label:last-of-type {
 	top: 10%;
 	left: 50%;
 	transform: translate(-50%);
-	background: #eee;
+	background: var(--bg-color);
 	padding: 30px;
-	border: solid 1px #aaa;
-	box-shadow: 3px 4px 10px 0 #eee;
+	border: solid 1px var(--btn-border);
+	border-radius: 5px;
 }
 
 #modal_background {
@@ -335,11 +359,6 @@ input[type=radio] + label:last-of-type {
 
 #modal .modal_content { overflow-y: scroll; }
 
-#modal table td:nth-child(1) {
-	padding-right: 1em;
-	font-weight: bold;
-}
-
 #modal img {
 	max-height: 75vh;
 	object-fit: contain;
@@ -359,9 +378,8 @@ input[type=radio] + label:last-of-type {
 
 #context_menu {
 	background: var(--list-item-bg);
+	border: solid 1px var(--btn-border);
 	border-radius: 5px;
-	border: solid 1px #aaa;
-	box-shadow: 2px 2px 1px 0 rgba(0, 0, 0, 0.2);
 	display: none;
 	position: absolute;
 }
@@ -373,11 +391,11 @@ input[type=radio] + label:last-of-type {
 #context_menu p:hover { background: var(--selected); }
 </style>
 <body>
-	<form id="connection_form" class="btn_container">
+	<form id="connection_form" class="hflex">
 		<label for="hostname">Hostname</label>
-		<input type="text" id="hostname_input" name="hostname" size="16" required/>
+		<input type="text" id="hostname_input" name="hostname" size="13" required/>
 		<label for="port">Port</label>
-		<input type="text" id="port_input" name="port" min="1" max="65535" size="4"/>
+		<input type="text" id="port_input" name="port" min="1" max="65535" size="3"/>
 		<button
 			id="connection_submit"
 			title="Connect to MPD instance"
@@ -400,35 +418,35 @@ input[type=radio] + label:last-of-type {
 			onchange="set_auto_update(this.checked)"
 			type="checkbox"
 		></input>
-		<label for="auto_update_input">&#x27F3;&#xFE0E;</label>
+		<label id="auto_update_button" class="hflex" for="auto_update_input"></label>
 
 		<div class="hover_menu_wrapper">
 			<button type="button">Options</button>
-			<div>
+			<div class="vflex">
 				<input
 					id="repeat_value"
 					onchange="set_option('repeat', this.checked)"
 					type="checkbox"
 					></input>
-				<label for="repeat_value">Repeat</label>
+				<label class="hflex" id="repeat_label" for="repeat_value">Repeat</label>
 				<input
 					id="random_value"
 					onchange="set_option('random', this.checked)"
 					type="checkbox"
 					></input>
-				<label for="random_value">Random</label>
+				<label class="hflex" id="random_label" for="random_value">Random</label>
 				<input
 					id="single_value"
 					onchange="set_option('single', this.checked)"
 					type="checkbox"
 					></input>
-				<label for="single_value">Single</label>
+				<label class="hflex" id="single_label" for="single_value">Single</label>
 				<input
 					id="consume_value"
 					onchange="set_option('consume', this.checked)"
 					type="checkbox"
 					></input>
-				<label for="consume_value">Consume</label>
+				<label class="hflex" id="consume_label" for="consume_value">Consume</label>
 
 				<div>
 					<input
@@ -479,16 +497,16 @@ input[type=radio] + label:last-of-type {
 		</div>
 	</form>
 
-	<div id="cur_song_progress_wrapper" class="btn_container">
+	<div id="cur_song_progress_wrapper" class="hflex">
 		<span id="cur_song_elapsed">0:00</span>
 		<input type="range" id="cur_song_progress" step="0.01" min="0"></input>
 		<span id="cur-song-duration"></span>
 		<span>&nbsp;</span>
-		<button id="pause_button" type="button" onclick="pause()">Pause</button>
-		<button id="stop_button" type="button" onclick="stop()">&#x23F9;&#xFE0E;</button>
-		<button id="prev_button" type="button" onclick="prev()">&#x23EA;&#xFE0E;</button>
-		<button id="next_button" type="button" onclick="next()">&#x23E9;&#xFE0E;</button>
-		<button id="cur_song_info" type="button" title="Show song information">i</button>
+		<button id="pause_button" class="hflex" type="button" onclick="pause()"></button>
+		<button id="stop_button" class="hflex" type="button" onclick="stop()"></button>
+		<button id="prev_button" class="hflex" type="button" onclick="prev()"></button>
+		<button id="next_button" class="hflex" type="button" onclick="next()"></button>
+		<button id="cur_song_info" class="hflex" type="button" title="Show song information"></button>
 	</div>
 
 	<div id="info_controls">
@@ -505,17 +523,25 @@ input[type=radio] + label:last-of-type {
 		</div>
 
 		<div id="song_controls">
-			<div>
+			<div class="hflex">
 				Vol:
 				<input type="range" id="volume_slider" step="1" min="0" max="100" title="Volume"></input>
 				<span id="volume_label"></span>
-				<button id="volume_down" class="left" title="Volume down">
-					-
-				</button>
-				<button id="volume_up" class="right" title="Volume up">
-					+
-				</button>
+				<button id="volume_down" title="Volume down"></button>
+				<button id="volume_up" title="Volume up"></button>
 			</div>
+
+			<form id="search_form" class="hflex">
+				<input type="text" id="search_input" name="query" size="12"/>
+				<select name="field">
+					<option value="title">Title</option>
+					<option value="artist">Artist</option>
+					<option value="albumartist">AA</option>
+					<option value="album">Album</option>
+					<option value="genre">Genre</option>
+				</select>
+				<button id="search_submit" type="submit">Search</button>
+			</form>
 
 			<div>
 				<input
@@ -539,11 +565,6 @@ input[type=radio] + label:last-of-type {
 					Playlists
 				</label>
 			</div>
-
-			<form id="search_form" class="btn_container">
-				<input type="text" id="search_input" name="query" size="16"/>
-				<button id="search_submit" type="submit">Search</button>
-			</form>
 		</div>
 	</div>
 
@@ -551,11 +572,51 @@ input[type=radio] + label:last-of-type {
 	<div id="album-list" class="item_list"></div>
 	<div id="title-list" class="item_list"></div>
 
-	<div id="queue_actions" class="btn_container">
-		Playlist:
-		<button title="Clear playlist" onclick="clear_playlist()">Clear</button>
-		<button title="Remove songs before current in playlist" onclick="clear_playlist_before_current()">Clear before current</button>
-		<button title="Shuffle playlist" onclick="shuffle_playlist()">Shuffle</button>
+	<div id="queue_actions" class="hflex">
+		Queue:
+		<div class="hflex hover_menu_wrapper hover_menu_bottom">
+			<button type="button">Add</button>
+			<div class="hflex">
+				<form id="add_form">
+					<input
+						autocomplete="off"
+						name="entry"
+						type="text"
+						size="30"></input>
+					<button type="submit">Add</button>
+				</form>
+			</div>
+		</div>
+		<div class="hflex hover_menu_wrapper hover_menu_bottom">
+			<button type="button">Save</button>
+			<div>
+				<form id="save_form">
+					<input
+						autocomplete="off"
+						name="entry"
+						type="text"
+						size="30"></input>
+					<button type="submit">Save</button>
+				</form>
+			</div>
+		</div>
+		<div class="hflex hover_menu_wrapper hover_menu_bottom">
+			<button type="button">Remove</button>
+			<div class="vflex">
+				<button title="Clear queue" onclick="clear_queue()">All</button>
+				<button
+					title="Clear queue except for current song"
+					onclick="clear_queue_except_current()">
+					Except current
+				</button>
+				<button
+					title="Clear songs before current"
+					onclick="clear_queue_before_current()">
+					Before current
+				</button>
+			</div>
+		</div>
+		<button title="Shuffle queue" onclick="shuffle_queue()">Shuffle</button>
 	</div>
 
 	<div id="queue_wrapper">
