@@ -1619,6 +1619,28 @@ function setup() {
 
 	set_artist_mode('albumartist');
 	set_auto_update(document.getElementById('auto_update_input').checked);
+
+	// Support resizing the queue.
+	const resizer = document.getElementById("resizer");
+	const queue = document.getElementById("queue_wrapper");
+
+	function resize(e) {
+		const queue_bottom = queue.getBoundingClientRect().bottom;
+		const resize_height = resizer.getBoundingClientRect().height;
+		const new_height = queue_bottom - e.y - resize_height;
+
+		const size = `${new_height}px`;
+		queue.style.maxHeight = size;
+	}
+
+	resizer.addEventListener("mousedown", (event) => {
+		document.body.style.userSelect = "none";
+		document.addEventListener("mousemove", resize, false);
+		document.addEventListener("mouseup", () => {
+			document.body.style.userSelect = "initial";
+			document.removeEventListener("mousemove", resize, false);
+		}, false);
+	});
 }
 
 window.display_mode = 'library';
