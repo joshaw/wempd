@@ -8,7 +8,14 @@ import urllib.parse
 logging.basicConfig(level=logging.INFO)
 
 
-def init_client(hostname="localhost", port=6600):
+def init_client(client, hostname="localhost", port=6600):
+    if client:
+        try:
+            client.status()
+            return client
+        except mpd.base.ConnectionError:
+            pass
+
     hostname = os.getenv("WEMPD_MPD_HOSTNAME", "localhost")
     port = int(os.getenv("WEMPD_MPD_PORT", "6600"))
 
@@ -163,7 +170,7 @@ def remove_path_prefix(path):
 
 
 class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
-    client = init_client()
+    client = init_client(None)
 
     def return_json(self, data, code=200):
         self.send_headers(content_type="application/json", code=code)
@@ -180,6 +187,8 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        MPDRequestHandler.client = init_client(self.client)
+
         path_explode = urllib.parse.urlparse(self.path)
         orig_path = path_explode.path
         path = remove_path_prefix(orig_path)
@@ -281,6 +290,8 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.return_json_fail(f"Unrecognised GET path: {path}")
 
     def do_POST(self):
+        MPDRequestHandler.client = init_client(self.client)
+
         path_explode = urllib.parse.urlparse(self.path)
         path = remove_path_prefix(path_explode.path)
 
