@@ -367,26 +367,51 @@ function get_info_panel(info) {
 
 	explicit_rows.push('track');
 	const mb_url = 'https://musicbrainz.org';
-	for (const key of Object.keys(info).sort()) {
+	for (let key of Object.keys(info).sort()) {
 		if (explicit_rows.includes(key)) { continue; }
 
 		let value = info[key];
 
 		switch (key) {
 			case 'musicbrainz_artistid':
+				key = 'MusicBrainz Artist ID';
 				value = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
 				break;
+			case 'musicbrainz_albumartistid':
+				if (value === info['musicbrainz_artistid']) {
+					value = null;
+				} else {
+					key = 'MusicBrainz Album Artist ID';
+					value = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
+				}
+				break;
 			case 'musicbrainz_albumid':
+				key = 'MusicBrainz Album ID';
 				value = make(['a', {href: `${mb_url}/album/${value}`}, value]);
 				break;
 			case 'musicbrainz_trackid':
+				key = 'MusicBrainz Track ID';
 				value = make(['a', {href: `${mb_url}/recording/${value}`}, value]);
 				break;
+			case 'musicbrainz_releasetrackid':
+				key = 'MusicBrainz Release Track ID';
+				value = make(['a', {href: `${mb_url}/track/${value}`}, value]);
+				break;
+			case 'duration':
+				value = `${format_secs(value)} (${value} secs)`;
+				break
+			case 'id':
+			case 'pos':
+			case 'time':
+				value = null;
+				break
 			default:
 				break;
 		}
 
-		info_table.appendChild(create_table_row([key, value]));
+		if (value) {
+			info_table.appendChild(create_table_row([key, value]));
+		}
 	}
 
 	const albumart = document.getElementById('albumart').cloneNode();
