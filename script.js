@@ -1197,16 +1197,7 @@ function populate_queue(queue) {
 
 		{ // Albumartist column
 			const td = document.createElement('td');
-			// TODO: context menu
 			append_artist_links(song, td);
-			/*
-			const link = document.createElement('a');
-			link.textContent = song.artist;
-			link.href = '#';
-			link.addEventListener('click', () => locate_albumartist(song));
-
-			const td = document.createElement('td');
-			td.appendChild(link);
 			td.addEventListener('contextmenu', (e) => {
 				e.preventDefault();
 				draw_context_menu(e.x, e.y, [
@@ -1214,9 +1205,12 @@ function populate_queue(queue) {
 						title: 'Remove artist',
 						command: () => remove_from_queue({artist: song.artist})
 					},
+					{
+						title: 'Remove album artist',
+						command: () => remove_from_queue({albumartist: song.albumartist})
+					},
 				]);
 			});
-			*/
 			song_tr.appendChild(td);
 		}
 

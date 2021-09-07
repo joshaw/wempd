@@ -387,7 +387,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
                 removed = remove_from_queue_by_id(self.client, post_data["ids"])
 
             else:
-                for key in ("artist", "album", "title", "name"):
+                for key in ("artist", "albumartist", "album", "title", "name"):
                     if key in post_data:
                         removed += remove_from_queue_by_search(
                             self.client, key, post_data[key]
