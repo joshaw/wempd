@@ -275,10 +275,10 @@ function hide_context_menu() {
 	remove_children(cmenu);
 }
 
-function notify(...content) {
+function notify(content) {
 	const logger = document.getElementById('logger');
 	const new_p = document.createElement('p');
-	new_p.textContent = content.join(' ');
+	new_p.textContent = content;
 	logger.insertBefore(new_p, logger.firstElementChild);
 
 	new_p.addEventListener('click', () => {
@@ -1247,7 +1247,7 @@ function update_queue() {
 function remove_from_queue(what) {
 	post_json('remove', what)
 		.then((e) => {
-			notify('Removed', plural(e.removed, 'song', 'songs'));
+			notify(`Removed ${plural(e.removed, 'song', 'songs')}`);
 			update_queue();
 		});
 }
@@ -1255,7 +1255,7 @@ function remove_from_queue(what) {
 function insert_to_queue(what) {
 	post_json('insert', what)
 		.then((e) => {
-			notify('Inserted', plural(e.inserted, 'song', 'songs'));
+			notify(`Inserted ${plural(e.inserted, 'song', 'songs')}`);
 			update_queue();
 		});
 }
@@ -1263,7 +1263,7 @@ function insert_to_queue(what) {
 function append_to_queue(what) {
 	post_json('append', what)
 		.then((e) => {
-			notify('Appended', plural(e.appended, 'song', 'songs'));
+			notify(`Appended ${plural(e.appended, 'song', 'songs')}`);
 			update_queue();
 		});
 }
