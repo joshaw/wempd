@@ -104,7 +104,7 @@ function url_with_params(url, params = {}) {
 	const kv = [];
 	for (const key in params) {
 		const value = params[key];
-		if (value || value === false) {
+		if (value !== null && value !== undefined) {
 			kv.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
 		}
 	}
