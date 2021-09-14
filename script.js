@@ -1045,17 +1045,23 @@ function playlist_info_display(info) {
 	btn_div.classList.add('btn_container');
 
 	const insert_btn = document.createElement('button');
-	insert_btn.textContent = 'Insert';
+	insert_btn.classList.add("hflex");
+	insert_btn.appendChild(parseHTML(add_icon));
+	insert_btn.append(document.createTextNode('Insert'));
 	insert_btn.addEventListener('click', () => insert_to_queue(info));
 	btn_div.appendChild(insert_btn);
 
 	const append_btn = document.createElement('button');
-	append_btn.textContent = 'Append';
+	append_btn.classList.add("hflex");
+	append_btn.appendChild(parseHTML(append_icon));
+	append_btn.append(document.createTextNode('Append'));
 	append_btn.addEventListener('click', () => append_to_queue(info));
 	btn_div.appendChild(append_btn);
 
 	const rm_btn = document.createElement('button');
-	rm_btn.textContent = 'Delete';
+	rm_btn.classList.add("hflex");
+	rm_btn.appendChild(parseHTML(delete_icon));
+	rm_btn.appendChild(document.createTextNode('Delete'));
 	rm_btn.addEventListener('click', () => remove_playlist(info.playlist).then(hide_modal));
 	btn_div.appendChild(rm_btn);
 
