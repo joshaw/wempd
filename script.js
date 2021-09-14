@@ -14,16 +14,19 @@ const stop_icon = svg_icon('<path d="M1,1 H9 V9 H1 z" />');
 const prev_icon = svg_icon('<path d="M0,5 L5,0 V10 z M5,5 L10,0 L10,10 z" />');
 const next_icon = svg_icon('<path d="M0,0 L5,5 L0,10 z M5,0 L10,5 L5,10 z" />');
 const refresh_icon = svg_icon('<path d="M10,4 H4 L7,7.5 M8,5 A4,4,-0,1,0,4,9 L4,7.5 A2.5,2.5,-0,1,1,6.5,5" />');
-const info_icon = svg_icon('<path d="M2,3 H6 V8 H9 V10 H1 V8 H4 V5 H2 z"></path><circle cx="4.5" cy="1.3" r="1.3"></circle>');
-const add_icon = svg_icon('<path d="M1,4 H4 V1 H6 V4 H9 V6 H6 V9 H4 V6 H1"></path>');
-const append_icon = svg_icon('<path d="M0,4 H3 V1 H5 V4 H7.5 V6 H5 V9 H3 V6 H0 M8,1 H10 V9 H8"></path>');
-const down_icon = svg_icon('<path d="M1,4 H9 V6 H1"></path>');
+const info_icon = svg_icon('<path d="M2,3 H6 V8 H9 V10 H1 V8 H4 V5 H2 z" /><circle cx="4.5" cy="1.3" r="1.3" />');
+const add_icon = svg_icon('<path d="M1,4 H4 V1 H6 V4 H9 V6 H6 V9 H4 V6 H1" />');
+const append_icon = svg_icon('<path d="M0,4 H3 V1 H5 V4 H7.5 V6 H5 V9 H3 V6 H0 M8,1 H10 V9 H8" />');
+const down_icon = svg_icon('<path d="M1,4 H9 V6 H1" />');
+const save_icon = svg_icon('<path d="M4,0 V5.5 L2,3.7 L1,5 L4,8 H0 V10 H10 V8 H6 L9,5 L8,3.7 L6,5.6 V0" />');
 const up_icon = add_icon;
+const remove_icon = down_icon;
+const delete_icon = svg_icon('<path d="M1,2 V3 H2 V10 H8 V3 H9 V2 H6 L5.5,1.5 H4.5 L4,2 M3,9 v-5.5 h1 v5.5 M6,9 v-5.5 h1 v5.5" />');
 
-const single_icon = svg_icon('<path d="M2,9 V7 H4 V3.2 L2,4.2 V2 L4,1 H6 V7 H8 V9"></path>');
-const random_icon = svg_icon('<path d="M1,1 H9 V9 H1 z M3.5,2 A1.5,1.5 0 1,0 3.5,5 M3.5,5 A1.5,1.5 0 1,0 3.5,2 M6.5,5 A1.5,1.5 0 1,0 6.5,8 M6.5,8 A1.5,1.5 0 1,0 6.5,5"></path>');
-const repeat_icon = svg_icon('<path d="M0,6 H6 L3,2.5 M2,5 A4,4,-0,1,0,6,1 L6,2.5 A2.5,2.5,-0,1,1,3.5,5"></path>');
-const consume_icon = svg_icon('<path d="M2.6,1 L5,3.4 L7.4,1 L9,2.6 L6.6,5 L9,7.4 L7.4,9 L5,6.6 L2.6,9 L1,7.4 L3.4,5 L1,2.6"></path>');
+const single_icon = svg_icon('<path d="M2,9 V7 H4 V3.2 L2,4.2 V2 L4,1 H6 V7 H8 V9" />');
+const random_icon = svg_icon('<path d="M1,1 H9 V9 H1 z M3.5,2 A1.5,1.5 0 1,0 3.5,5 M3.5,5 A1.5,1.5 0 1,0 3.5,2 M6.5,5 A1.5,1.5 0 1,0 6.5,8 M6.5,8 A1.5,1.5 0 1,0 6.5,5" />');
+const repeat_icon = svg_icon('<path d="M0,6 H6 L3,2.5 M2,5 A4,4,-0,1,0,6,1 L6,2.5 A2.5,2.5,-0,1,1,3.5,5" />');
+const consume_icon = svg_icon('<path d="M2.6,1 L5,3.4 L7.4,1 L9,2.6 L6.6,5 L9,7.4 L7.4,9 L5,6.6 L2.6,9 L1,7.4 L3.4,5 L1,2.6" />');
 
 // Utility functions //////////////////////////////////////////////////////////
 function isArray(a) {
