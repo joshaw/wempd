@@ -1318,6 +1318,7 @@ function set_display_mode(mode) {
 			throw new Error();
 	}
 
+	set_param("mode", mode);
 	if (window.display_mode === mode) {
 		return Promise.resolve();
 	}
@@ -1475,6 +1476,12 @@ function shuffle_queue() {
 	post_json('shuffle').then(update_queue);
 }
 
+function set_param(key, value) {
+	const urlParams = new URLSearchParams(window.location.search);
+	urlParams.set(key, value);
+	window.history.replaceState(null, "", `/?${urlParams}`);
+}
+
 function set_auto_update(value) {
 	if (value) { // Enable
 		if (! window.update_interval) {
@@ -1483,12 +1490,15 @@ function set_auto_update(value) {
 			refresh();
 			console.log('Created interval, ', window.update_interval);
 		}
+		set_param("auto", 1);
+
 	} else { // Disable
 		if (window.update_interval) {
 			console.log('Clearing interval, ', window.update_interval);
 			clearInterval(window.update_interval);
 		}
 		window.update_interval = null;
+		set_param("auto", 0);
 	}
 }
 
@@ -1548,6 +1558,7 @@ function get_and_show_summary(field='albumartist', sort_by='playtime') {
 
 function setup() {
 	// Only called on page init
+	const params = new URLSearchParams(window.location.search);
 
 	document.getElementById('pause_button').innerHTML = pause_icon;
 	document.getElementById('stop_button').innerHTML = stop_icon;
@@ -1641,7 +1652,21 @@ function setup() {
 	});
 
 	set_artist_mode('albumartist');
-	set_auto_update(document.getElementById('auto_update_input').checked);
+
+	// Auto update
+	const auto_update_input = document.getElementById('auto_update_input');
+	if (params.has("auto")) {
+		auto_update_input.checked = params.get("auto") == "1";
+	}
+	set_auto_update(auto_update_input.checked);
+
+	// Display Mode
+	if (params.has("mode")) {
+		const mode = params.get("mode")
+		if (mode == "playlists" || mode == "library") {
+			set_display_mode(mode);
+		}
+	}
 
 	// Support resizing the queue.
 	const resizer = document.getElementById("resizer");
