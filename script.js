@@ -1477,9 +1477,9 @@ function shuffle_queue() {
 }
 
 function set_param(key, value) {
-	const urlParams = new URLSearchParams(window.location.search);
-	urlParams.set(key, value);
-	window.history.replaceState(null, "", `/?${urlParams}`);
+	const url = new URL(window.location.href);
+	url.searchParams.set(key, value);
+	window.history.replaceState(null, "", url.href);
 }
 
 function set_auto_update(value) {
