@@ -544,7 +544,7 @@ function populate_song_info(all_status) {
 
 	// Album Art
 	if (cur_file) {
-		if (!window.cur_file || window.cur_file !== cur_file) {
+		if (window.cur_file !== cur_file) {
 			window.cur_file = cur_file;
 			fetch_blob('art', {file: cur_file})
 				.then((resp) => (resp.status === 200) ? resp.blob() : null)
@@ -1666,6 +1666,7 @@ function setup() {
 	});
 }
 
+window.cur_file = null;
 window.display_mode = 'library';
 window.addEventListener('load', () => {
 	setup();
