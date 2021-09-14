@@ -341,34 +341,37 @@ function get_info_panel(info) {
 	}
 
 	for (const key of explicit_rows) {
-		let value = info[key];
+		const value = info[key];
 		if (!value) { continue; }
 
-		value = document.createElement('a');
-		value.href = '#';
+		let el = document.createElement('a');
+		el.href = '#';
 
 		switch (key) {
 			case 'title':
-				value.textContent = info.title;
-				value.addEventListener('click', () => locate_title(info));
+				el.textContent = value;
+				el.addEventListener('click', () => locate_title(info));
 				break;
 			case 'album':
-				value.textContent = info.album;
-				value.addEventListener('click', () => locate_album(info));
+				el.textContent = value;
+				el.addEventListener('click', () => locate_album(info));
 				break;
 			case 'artist':
-				value.textContent = info.artist;
-				value.addEventListener('click', () => locate_artist(info));
+				el.textContent = value;
+				el.addEventListener('click', () => locate_artist(info));
 				break;
 			case 'albumartist':
-				value.textContent = info.albumartist;
-				value.addEventListener('click', () => locate_albumartist(info));
+				el.textContent = value;
+				el.addEventListener('click', () => locate_albumartist(info));
+				break;
+			case 'name':
+				el = document.createTextNode(value);
 				break;
 			default:
 				break;
 		}
 
-		info_table.appendChild(create_table_row([sentenceCase(key), value]));
+		info_table.appendChild(create_table_row([sentenceCase(key), el]));
 	}
 
 	info_table.appendChild(create_table_row());
@@ -378,47 +381,48 @@ function get_info_panel(info) {
 	for (let key of Object.keys(info).sort()) {
 		if (explicit_rows.includes(key)) { continue; }
 
-		let value = info[key];
+		const value = info[key];
+		let el = value;
 
 		switch (key) {
 			case 'musicbrainz_artistid':
 				key = 'MusicBrainz Artist ID';
-				value = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
+				el = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
 				break;
 			case 'musicbrainz_albumartistid':
 				if (value === info['musicbrainz_artistid']) {
-					value = null;
+					el = null;
 				} else {
 					key = 'MusicBrainz Album Artist ID';
-					value = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
+					el = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
 				}
 				break;
 			case 'musicbrainz_albumid':
 				key = 'MusicBrainz Album ID';
-				value = make(['a', {href: `${mb_url}/album/${value}`}, value]);
+				el = make(['a', {href: `${mb_url}/album/${value}`}, value]);
 				break;
 			case 'musicbrainz_trackid':
 				key = 'MusicBrainz Track ID';
-				value = make(['a', {href: `${mb_url}/recording/${value}`}, value]);
+				el = make(['a', {href: `${mb_url}/recording/${value}`}, value]);
 				break;
 			case 'musicbrainz_releasetrackid':
 				key = 'MusicBrainz Release Track ID';
-				value = make(['a', {href: `${mb_url}/track/${value}`}, value]);
+				el = make(['a', {href: `${mb_url}/track/${value}`}, value]);
 				break;
 			case 'duration':
-				value = `${format_secs(value)} (${value} secs)`;
+				el = `${format_secs(value)} (${value} secs)`;
 				break
 			case 'id':
 			case 'pos':
 			case 'time':
-				value = null;
+				el = null;
 				break
 			default:
 				break;
 		}
 
-		if (value) {
-			info_table.appendChild(create_table_row([key, value]));
+		if (el) {
+			info_table.appendChild(create_table_row([key, el]));
 		}
 	}
 
