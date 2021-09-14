@@ -1583,8 +1583,6 @@ function setup() {
 	// Album art view
 	const albumart = document.getElementById('albumart');
 	albumart.addEventListener('click', () => {
-		//const clone = albumart.cloneNode();
-		//display_modal(clone);
 		show_info_panel(currentsong);
 	});
 
