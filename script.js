@@ -1371,9 +1371,9 @@ function check_db_update(info) {
 }
 
 function refresh() {
-	update_queue();
 	return fetch_json('status')
 		.then((info) => {
+			populate_queue(info.queue);
 			populate_song_info(info);
 			check_db_update(info);
 			return info;

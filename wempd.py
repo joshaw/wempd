@@ -34,6 +34,7 @@ def get_status(client):
         "status": client.status(),
         "currentsong": client.currentsong(),
         "connection": f"{sock_name[0]}:{sock_name[1]}",
+        "queue": list_queue(client),
         "version": client.mpd_version,
     }
 
