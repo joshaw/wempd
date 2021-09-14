@@ -728,7 +728,6 @@ function get_and_show_outputs() {
 			enabled.id = input_id;
 			enabled.checked = output.outputenabled === "1";
 			enabled.addEventListener('change', () => {
-				console.log(output);
 				if (enabled.checked) {
 					post_json('enableoutput', {outputid: output.outputid})
 						.then(() => notify(`Enabled output "${output.outputname}"`));
