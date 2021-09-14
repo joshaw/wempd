@@ -181,10 +181,12 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         print(f"Error: {msg}")
         self.return_json({"error": msg}, code=400)
 
-    def send_headers(self, content_type="text/html", code=200):
+    def send_headers(self, content_type="text/html", code=200, content_length=None):
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store")
+        if content_length is not None:
+            self.send_header("Content-Length", content_length)
         self.end_headers()
 
     def do_GET(self):
@@ -233,7 +235,10 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
                     pic = self.client.albumart(query["file"])
 
                 binary = pic["binary"]
-                self.send_headers(content_type=pic.get("type", "image/jpg"), code=200)
+                self.send_headers(
+                        content_type=pic.get("type", "image/jpg"),
+                        content_length=len(binary),
+                        code=200)
                 self.wfile.write(binary)
             except (KeyError, mpd.base.CommandError):
                 self.return_json({"Error": "No file exists"}, code=204)
