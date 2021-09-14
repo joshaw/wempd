@@ -278,10 +278,15 @@ function hide_context_menu() {
 	remove_children(cmenu);
 }
 
-function notify(content) {
-	const logger = document.getElementById('logger');
+function notify(content, icon) {
 	const new_p = document.createElement('p');
-	new_p.textContent = content;
+	new_p.classList.add("hflex");
+	new_p.appendChild(parseHTML(icon));
+
+	const text = document.createTextNode(content);
+	new_p.appendChild(text);
+
+	const logger = document.getElementById('logger');
 	logger.insertBefore(new_p, logger.firstElementChild);
 
 	new_p.addEventListener('click', () => {
@@ -486,7 +491,7 @@ function get_and_show_stats(do_auto_refresh=true) {
 		update_button.textContent = 'Update DB';
 		update_button.addEventListener('click', () => {
 			post_json('update').then(() => {
-				notify('Starting DB update');
+				notify('Starting DB update', refresh_icon);
 				window.update_in_progress = true;
 				get_and_show_stats(false);
 			});
@@ -1022,7 +1027,7 @@ function album_artist_info_display(info) {
 
 function remove_playlist(name) {
 	return post_json('removeplaylist', {playlist: name})
-		.then((results) => notify(`Removed playlist, ${results.removed}`))
+		.then((results) => notify(`Removed playlist, ${results.removed}`, delete_icon))
 		.then(get_playlists);
 }
 
@@ -1269,7 +1274,8 @@ function update_queue() {
 function remove_from_queue(what) {
 	post_json('remove', what)
 		.then((e) => {
-			notify(`Removed ${plural(e.removed, 'song', 'songs')}`);
+			// TODO: better icon
+			notify(`Removed ${plural(e.removed, 'song', 'songs')}`, remove_icon);
 			update_queue();
 		});
 }
@@ -1277,7 +1283,7 @@ function remove_from_queue(what) {
 function insert_to_queue(what) {
 	post_json('insert', what)
 		.then((e) => {
-			notify(`Inserted ${plural(e.inserted, 'song', 'songs')}`);
+			notify(`Inserted ${plural(e.inserted, 'song', 'songs')}`, add_icon);
 			update_queue();
 		});
 }
@@ -1285,7 +1291,7 @@ function insert_to_queue(what) {
 function append_to_queue(what) {
 	post_json('append', what)
 		.then((e) => {
-			notify(`Appended ${plural(e.appended, 'song', 'songs')}`);
+			notify(`Appended ${plural(e.appended, 'song', 'songs')}`, append_icon);
 			update_queue();
 		});
 }
@@ -1346,10 +1352,10 @@ function check_db_update(info) {
 
 	if (!window.update_in_progress && update_id >= 0) {
 		window.update_in_progress = update_id;
-		notify(`DB update, ${update_id} started`);
+		notify(`DB update, ${update_id} started`, refresh_icon);
 
 	} else if (window.update_in_progress && update_id < 0) {
-		notify(`DB update, ${window.update_in_progress}, complete`);
+		notify(`DB update, ${window.update_in_progress}, complete`, refresh_icon);
 		window.update_in_progress = null;
 	}
 }
@@ -1395,11 +1401,19 @@ function set_albumart(blob) {
 }
 
 function set_option(mode, value) {
+	var icon;
 	switch (mode) {
 		case 'consume':
+			icon = consume_icon;
+			break;
 		case 'single':
+			icon = single_icon;
+			break;
 		case 'random':
+			icon = random_icon;
+			break;
 		case 'repeat':
+			icon = repeat_icon;
 			break;
 		default:
 			console.error('Unknown mode option, %s', mode);
@@ -1407,12 +1421,12 @@ function set_option(mode, value) {
 	}
 	const msg = `${value ? 'Enabled' : 'Disabled'} ${mode} mode`;
 	post_json(mode, {enabled: value ? '1' : '0'})
-		.then(() => notify(msg));
+		.then(() => notify(msg, icon));
 }
 
 function clear_queue() {
 	post_json('clear').then((resp) => {
-		notify(`Removed ${resp.removed} songs`);
+		notify(`Removed ${resp.removed} songs`, remove_icon);
 		update_queue();
 	});
 }
@@ -1420,7 +1434,7 @@ function clear_queue() {
 function clear_queue_before_current() {
 	const cur_pos = parseInt(window.currentsong.pos);
 	post_json('delete', {from: 0, to: cur_pos}).then((resp) => {
-		notify(`Removed ${resp.removed} songs`);
+		notify(`Removed ${resp.removed} songs`, remove_icon);
 		update_queue();
 	});
 }
@@ -1429,7 +1443,7 @@ function clear_queue_except_current() {
 	const cur_pos = parseInt(window.currentsong.pos);
 	post_json('delete', {from: cur_pos+1, to: 1e9}).then((resp1) => {
 		post_json('delete', {from: 0, to: cur_pos}).then((resp2) => {
-			notify(`Removed ${resp1.removed + resp2.removed} songs`);
+			notify(`Removed ${resp1.removed + resp2.removed} songs`, remove_icon);
 			update_queue();
 		});
 	});
@@ -1596,7 +1610,7 @@ function setup() {
 		if (entry.length > 0) {
 			post_json('add', {entry})
 				.catch((here) => console.log('ERROR!', here))
-				.then((info) => notify(`Added ${info.added}`))
+				.then((info) => notify(`Added ${info.added}`, add_icon))
 				.then(update_queue);
 				// TODO error handling
 		}
@@ -1609,7 +1623,7 @@ function setup() {
 		const entry = e.target.elements.entry.value;
 		if (entry.length > 0) {
 			post_json('save', {name: entry})
-				.then(() => notify(`Saved playlist, ${entry}`))
+				.then(() => notify(`Saved playlist, ${entry}`, save_icon))
 				.then(() => locate_playlist(entry));
 		}
 	});
