@@ -1395,6 +1395,19 @@ function prev() {
 	post_json('prev').then(refresh);
 }
 
+function adjust_volume(change) {
+	const volume_slider = document.getElementById("volume_slider");
+	const volume_label = document.getElementById("volume_label");
+	volume_slider.value = Number(volume_slider.value) + change;
+	volume_label.textContent = volume_slider.value;
+
+	post_json('volume', {volume: change})
+		.then((result) => {
+			volume_slider.value = result.volume;
+			volume_label.textContent = result.volume;
+		});
+}
+
 function set_albumart(blob) {
 	const img = document.getElementById('albumart');
 	if (blob) {
@@ -1583,21 +1596,11 @@ function setup() {
 	});
 
 	document.getElementById('volume_down').addEventListener('click', (event) => {
-		const change = event.shiftKey ? -5 : -1;
-		post_json('volume', {volume: change})
-			.then((result) => {
-				volume_slider.value = result.volume;
-				volume_label.textContent = result.volume;
-			});
+		adjust_volume(event.shiftKey ? -5 : -1);
 	});
 
 	document.getElementById('volume_up').addEventListener('click', (event) => {
-		const change = event.shiftKey ? +5 : +1;
-		post_json('volume', {volume: change})
-			.then((result) => {
-				volume_slider.value = result.volume;
-				volume_label.textContent = result.volume;
-			});
+		adjust_volume(event.shiftKey ? +5 : +1);
 	});
 
 	// Search form
@@ -1684,10 +1687,10 @@ window.addEventListener('keyup', (e) => {
 			pause();
 			break;
 		case 'ArrowUp':
-			post_json('volume', {volume: 5});
+			adjust_volume(event.shiftKey ? +1 : +5)
 			break;
 		case 'ArrowDown':
-			post_json('volume', {volume: -5});
+			adjust_volume(event.shiftKey ? -1 : -5)
 			break;
 		case 'ArrowRight':
 			next();
