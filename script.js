@@ -1503,6 +1503,10 @@ function set_auto_update(value) {
 }
 
 function get_and_show_summary(field='albumartist', sort_by='playtime') {
+	const loading_div = document.createElement("div");
+	loading_div.innerText = "Loading summary ...";
+	display_modal(loading_div);
+
 	fetch_json('count', {group: field}).then((results) => {
 		if (!results) { return; }
 
