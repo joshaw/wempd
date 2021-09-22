@@ -68,6 +68,7 @@ def list_albums(client, query):
 def simplify_title_list(titles):
     return [
         {
+            "track": s.get("track"),
             "title": s.get("title"),
             "name": s.get("name"),
             "file": s.get("file"),
