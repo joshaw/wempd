@@ -360,6 +360,13 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/insert":
             self.return_json({"inserted": insert(self.client, post_data)})
 
+        elif path == "/move":
+            if not ("from" in post_data and "to" in post_data):
+                self.return_json_fail("Missing parameter")
+
+            self.client.move(post_data["from"], post_data["to"])
+            self.return_json({})
+
         elif path == "/next":
             try:
                  self.client.next()

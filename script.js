@@ -1150,6 +1150,10 @@ function populate_artists(artists) {
 }
 
 // Queue
+function move_song(from_id, to_pos) {
+	post_json('move', {from: from_id, to: to_pos}).then(update_queue);
+}
+
 function populate_queue(queue) {
 	const queue_table = document.getElementById('queue');
 	remove_children(queue_table);
@@ -1263,6 +1267,22 @@ function populate_queue(queue) {
 			info_btn.classList.add('hflex');
 			info_btn.addEventListener('click', () => show_info_panel(song));
 			btn_span.appendChild(info_btn);
+
+			const song_pos = Number(song.pos);
+
+			const mv_up_btn = document.createElement('button');
+			mv_up_btn.innerHTML = '&#9650;';
+			mv_up_btn.title = 'Move song up';
+			mv_up_btn.classList.add('hflex');
+			mv_up_btn.addEventListener('click', () => move_song(song_pos, song_pos - 1));
+			btn_span.appendChild(mv_up_btn);
+
+			const mv_down_btn = document.createElement('button');
+			mv_down_btn.innerHTML = '&#9660;';
+			mv_down_btn.title = 'Move song down';
+			mv_down_btn.classList.add('hflex');
+			mv_down_btn.addEventListener('click', () => move_song(song_pos, song_pos + 1));
+			btn_span.appendChild(mv_down_btn);
 
 			td.appendChild(btn_span);
 			song_tr.appendChild(td);
