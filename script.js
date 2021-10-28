@@ -1443,7 +1443,7 @@ function set_albumart(blob) {
 	}
 }
 
-function set_option(mode, value) {
+function set_bool_option(mode, value) {
 	var icon;
 	switch (mode) {
 		case 'consume':

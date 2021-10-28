@@ -428,25 +428,25 @@ input[type=radio] + label:last-of-type {
 			<div class="vflex">
 				<input
 					id="repeat_value"
-					onchange="set_option('repeat', this.checked)"
+					onchange="set_bool_option('repeat', this.checked)"
 					type="checkbox"
 					></input>
 				<label class="hflex" id="repeat_label" for="repeat_value">Repeat</label>
 				<input
 					id="random_value"
-					onchange="set_option('random', this.checked)"
+					onchange="set_bool_option('random', this.checked)"
 					type="checkbox"
 					></input>
 				<label class="hflex" id="random_label" for="random_value">Random</label>
 				<input
 					id="single_value"
-					onchange="set_option('single', this.checked)"
+					onchange="set_bool_option('single', this.checked)"
 					type="checkbox"
 					></input>
 				<label class="hflex" id="single_label" for="single_value">Single</label>
 				<input
 					id="consume_value"
-					onchange="set_option('consume', this.checked)"
+					onchange="set_bool_option('consume', this.checked)"
 					type="checkbox"
 					></input>
 				<label class="hflex" id="consume_label" for="consume_value">Consume</label>
