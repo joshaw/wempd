@@ -600,7 +600,7 @@ function populate_song_info(all_status) {
 	cur_song_elapsed.textContent = format_secs(status.elapsed);
 
 	const cur_song_duration_el = document.getElementById('cur-song-duration');
-	cur_song_duration_el.textContent = format_secs(status.duration);
+	cur_song_duration_el.textContent = "-" + format_secs(status.duration - status.elapsed);
 
 	const cur_song_progess_el = document.getElementById('cur_song_progress');
 	cur_song_progess_el.value = status.elapsed;
@@ -613,6 +613,7 @@ function populate_song_info(all_status) {
 				const new_progress = Number(cur_song_progess_el.value) + 0.1;
 				cur_song_progess_el.value = new_progress;
 				cur_song_elapsed.textContent = format_secs(new_progress);
+				cur_song_duration_el.textContent = "-" + format_secs(status.duration - new_progress);
 
 				wait(100).then(window.progress_timeout);
 			};
