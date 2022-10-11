@@ -174,6 +174,9 @@ def remove_path_prefix(path):
 class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
     client = init_client(None)
 
+    def log_message(self, fmt, *msg):
+        logging.debug(fmt, *msg)
+
     def return_json(self, data, code=200):
         self.send_headers(content_type="application/json", code=code)
         self.wfile.write(json.dumps(data).encode("utf-8"))
