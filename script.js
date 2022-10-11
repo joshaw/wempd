@@ -23,10 +23,10 @@ const up_icon = add_icon;
 const remove_icon = down_icon;
 const delete_icon = svg_icon('<path d="M1,2 V3 H2 V10 H8 V3 H9 V2 H6 L5.5,1.5 H4.5 L4,2 M3,9 v-5.5 h1 v5.5 M6,9 v-5.5 h1 v5.5" />');
 
-const single_icon = svg_icon('<path d="M2,9 V7 H4 V3.2 L2,4.2 V2 L4,1 H6 V7 H8 V9" />');
+const single_icon = svg_icon('<path d="M1.5,9 V7 H4 V3.2 L2,4.2 V2 L4,1 H6 V7 H8 V9" />');
 const random_icon = svg_icon('<path d="M1,1 H9 V9 H1 z M3.5,2 A1.5,1.5 0 1,0 3.5,5 M3.5,5 A1.5,1.5 0 1,0 3.5,2 M6.5,5 A1.5,1.5 0 1,0 6.5,8 M6.5,8 A1.5,1.5 0 1,0 6.5,5" />');
 const repeat_icon = svg_icon('<path d="M0,6 H6 L3,2.5 M2,5 A4,4,-0,1,0,6,1 L6,2.5 A2.5,2.5,-0,1,1,3.5,5" />');
-const consume_icon = svg_icon('<path d="M2.6,1 L5,3.4 L7.4,1 L9,2.6 L6.6,5 L9,7.4 L7.4,9 L5,6.6 L2.6,9 L1,7.4 L3.4,5 L1,2.6" />');
+const consume_icon = svg_icon('<path d="M10 2.5 A4.5 4.5 0 1 0 10 7.5 L 5.5 5 Z" />');
 
 // Utility functions //////////////////////////////////////////////////////////
 function isArray(a) {
