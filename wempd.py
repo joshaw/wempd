@@ -506,11 +506,13 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.return_json_fail(f"Unrecognised POST path: {path}")
 
 
-try:
+if __name__ == "__main__":
     hostname = os.getenv("WEMPD_LISTEN_ADDRESS", "0.0.0.0")
     port = int(os.getenv("WEMPD_LISTEN_PORT", "8010"))
     print(f"Listening on: {hostname}:{port}")
     httpd = http.server.HTTPServer((hostname, port), MPDRequestHandler)
-    httpd.serve_forever()
-except KeyboardInterrupt:
-    pass
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    httpd.server_close()
