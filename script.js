@@ -118,6 +118,20 @@ function wait(ms) {
 	return new Promise((func) => setTimeout(func, ms));
 }
 
+function debounce(func, wait) {
+	let timeout;
+	return function() {
+		const context = this;
+		const args = arguments;
+		const later = function() {
+			timeout = null;
+			func.apply(context, args);
+		};
+		clearTimeout(timeout);
+		timeout = setTimeout(later, wait);
+	};
+};
+
 // Network functions //////////////////////////////////////////////////////////
 function fetch_json(url, params) {
 	//console.error('fetch json, ', url);
@@ -757,19 +771,34 @@ function get_and_show_outputs() {
 	});
 }
 
+function update_search_results(results) {
+	const summary = document.getElementById('search-summary');
+	summary.innerText = `Results (${results.length})`;
+	const table = document.getElementById('results-table');
+	populate_search_results(results, table);
+}
+
 function show_search_results(results, query) {
-	const summary = parseHTML(`<p class="summary">Results (${results.length}):</p>`);
+	const header = document.createElement("p");
+	header.id = "header";
+	const summary = parseHTML(`<span id="search-summary">Results (${results.length}):</span>`);
+	header.appendChild(summary);
 
 	const search_form = document.createElement('form');
 	search_form.classList.add('btn_container');
-	search_form.value = query;
 	search_form.addEventListener('submit', (e) => {
 		e.preventDefault();
-		const form_query = e.target.elements.query.value;
-		if (!form_query || form_query.length === 0) { return; }
-		fetch_json('search', {query: form_query, field: 'title'})
-			.then((resp) => show_search_results(resp, form_query));
+		const query = e.target.elements.query.value;
+		if (!query || query.length === 0) { return; }
+		fetch_json('search', {query})
+			.then((resp) => update_search_results(resp, query));
 	});
+	search_form.addEventListener('input', debounce((e) => {
+		const query = e.target.value;
+		if (!query || query.length <= 3) { return; }
+		fetch_json('search', {query})
+			.then((resp) => update_search_results(resp, query));
+	}, 200));
 
 	search_form.innerHTML = `
 		<input type="text" name="query">
@@ -777,12 +806,13 @@ function show_search_results(results, query) {
 	`;
 	search_form.children[0].value = query;
 
-	summary.appendChild(search_form);
+	header.appendChild(search_form);
 
 	const div = document.createElement('div');
-	div.appendChild(summary);
+	div.appendChild(header);
 
 	const table = document.createElement('table');
+	table.id = "results-table";
 	populate_search_results(results.sort((a, b) => a.title > b.title), table);
 	div.appendChild(table);
 
@@ -1641,9 +1671,8 @@ function setup() {
 	search_form.addEventListener('submit', (e) => {
 		e.preventDefault();
 		const query = e.target.elements.query.value;
-		const field = e.target.elements.field.value;
 		if (!query || query.length === 0) { return; }
-		fetch_json('search', {field, query})
+		fetch_json('search', {query})
 			.then((results) => show_search_results(results, query));
 	});
 

@@ -270,10 +270,10 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/search":
             try:
-                lst = self.client.search(query["field"], query["query"])
+                lst = self.client.search("any", query["query"])
                 self.return_json(simplify_title_list(lst))
             except KeyError:
-                self.return_json_fail("Missing parameter, 'query', or 'field'")
+                self.return_json_fail("Missing parameter, 'query'")
 
         elif path == "/playlists":
             self.return_json(list_playlists(self.client))
