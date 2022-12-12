@@ -5,170 +5,26 @@ import mpd
 import os
 import urllib.parse
 
+from api import (
+    get_status,
+    info_pairs,
+    init_client,
+    insert,
+    list_albumartists,
+    list_albums,
+    list_artists,
+    list_playlists,
+    list_queue,
+    list_titles,
+    remove_from_queue_by_id,
+    remove_from_queue_by_search,
+    remove_path_prefix,
+    simplify_title_list,
+)
+
+import html
+
 logging.basicConfig(level=logging.INFO)
-
-
-def init_client(client, hostname="localhost", port=6600):
-    if client:
-        try:
-            client.status()
-            return client
-        except mpd.base.ConnectionError:
-            pass
-
-    hostname = os.getenv("WEMPD_MPD_HOSTNAME", "localhost")
-    port = int(os.getenv("WEMPD_MPD_PORT", "6600"))
-
-    client = mpd.MPDClient()
-    client.connect(hostname, port)
-
-    sock_name = client._sock.getpeername()
-    print(f"Connected to mpd on: {sock_name[0]}:{sock_name[1]}")
-    print(f"MPD version: {client.mpd_version}")
-    return client
-
-
-def get_status(client):
-    sock_name = client._sock.getpeername()
-    return {
-        "status": client.status(),
-        "currentsong": client.currentsong(),
-        "connection": f"{sock_name[0]}:{sock_name[1]}",
-        "queue": list_queue(client),
-        "version": client.mpd_version,
-    }
-
-
-def info_pairs(data, allowed_fields=None):
-    cmd = []
-    fields = {"artist", "albumartist", "album", "title", "name", "file", "group"}
-    if not allowed_fields:
-        allowed_fields = fields
-
-    for what in fields.intersection(allowed_fields or set()):
-        if what in data and data[what] is not None:
-            cmd += [what, data[what]]
-
-    return cmd
-
-
-def list_artists(client):
-    return [a["artist"] for a in client.list("artist")]
-
-
-def list_albumartists(client):
-    return [a["albumartist"] for a in client.list("albumartist")]
-
-
-def list_albums(client, query):
-    pairs = info_pairs(query, ("artist", "albumartist"))
-    return [a["album"] for a in client.list("album", *pairs)]
-
-
-def simplify_title_list(titles):
-    return [
-        {
-            "track": s.get("track"),
-            "title": s.get("title"),
-            "name": s.get("name"),
-            "file": s.get("file"),
-            "artist": s.get("artist"),
-            "albumartist": s.get("albumartist"),
-            "album": s.get("album"),
-        }
-        for s in titles
-    ]
-
-
-def list_titles(client, query):
-    if "playlist" in query:
-        titles = client.listplaylistinfo(query["playlist"])
-
-    else:
-        pairs = info_pairs(query, ("artist", "albumartist", "album"))
-        if pairs:
-            titles = client.find(*pairs)
-        else:
-            titles = client.list("title")
-
-    return simplify_title_list(titles)
-
-
-def list_queue(client):
-    queue = client.playlistinfo()
-    status = client.status()
-    if "song" in status:
-        queue[int(status["song"])]["current"] = status["state"]
-    return queue
-
-
-def list_playlists(client):
-    return [p["playlist"] for p in client.listplaylists()]
-
-
-def remove_from_queue_by_search(client, what, search):
-    queue = client.playlistinfo()
-    removed = 0
-    for song in queue:
-        if song.get(what) == search:
-            client.deleteid(song["id"])
-            removed += 1
-
-    return removed
-
-
-def remove_from_queue_by_id(client, ids):
-    removed = 0
-    for song_id in ids:
-        try:
-            client.delete(song_id)
-            removed += 1
-        except mpd.base.CommandError:
-            pass
-
-    return removed
-
-
-def insert(client, query, append=False):
-    start_pos = 0
-    if append:
-        start_pos = len(client.playlist())
-    else:
-        status = client.status()
-        if "song" in status:
-            start_pos = int(status["song"]) + 1
-
-    count = 0
-    if query.get("playlist"):
-        if append:
-            client.load(query["playlist"])
-        else:
-            playlist = client.listplaylist(query["playlist"])
-            for i, song in enumerate(playlist, start=start_pos):
-                client.addid(song, i)
-                count += 1
-
-    elif query.get("file"):
-        client.addid(query["file"], start_pos)
-        count += 1
-
-    else:
-        pairs = info_pairs(query)
-        for i, song in enumerate(client.find(*pairs), start=start_pos):
-            client.addid(song["file"], i)
-            count += 1
-
-    return count
-
-
-PREFIX = '/mpd'
-def remove_path_prefix(path):
-    if path.startswith(PREFIX):
-        new_path = path[len(PREFIX):]
-        if not new_path:
-            new_path = '/'
-        return new_path
-    return path
 
 
 class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -185,6 +41,11 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         print(f"Error: {msg}")
         self.return_json({"error": msg}, code=400)
 
+    def return_html(self, lines, code=200):
+        self.send_headers(content_type="text/html", code=code)
+        header = html.get_header(self.client)
+        self.wfile.write("\n".join(header + lines).encode("utf-8"))
+
     def send_headers(self, content_type="text/html", code=200, content_length=None):
         self.send_response(code)
         self.send_header("Content-Type", content_type)
@@ -193,34 +54,8 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", content_length)
         self.end_headers()
 
-    def do_GET(self):
-        MPDRequestHandler.client = init_client(self.client)
-
-        path_explode = urllib.parse.urlparse(self.path)
-        orig_path = path_explode.path
-        path = remove_path_prefix(orig_path)
-        query = urllib.parse.parse_qs(path_explode.query, keep_blank_values=True)
-        query = {k: v[-1] for k, v in query.items()}
-
-        # Files
-        if path == "/":
-            with open("index.html", "r") as f:
-                self.send_headers()
-                self.wfile.write(f.read().encode("utf-8"))
-                return
-
-        if path == "/favicon.ico":
-            self.send_response(200)
-            self.end_headers()
-            return
-
-        if path == "/script.js":
-            with open("script.js", "r") as f:
-                self.send_headers(content_type="application/javascript")
-                self.wfile.write(f.read().encode("utf-8"))
-                return
-
-        # API
+    def handle_get_api(self, path, query):
+        path = path.removeprefix("/api")
         if path == "/albumartists":
             self.return_json(list_albumartists(self.client))
 
@@ -240,9 +75,10 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 binary = pic["binary"]
                 self.send_headers(
-                        content_type=pic.get("type", "image/jpg"),
-                        content_length=len(binary),
-                        code=200)
+                    content_type=pic.get("type", "image/jpg"),
+                    content_length=len(binary),
+                    code=200,
+                )
                 self.wfile.write(binary)
             except (KeyError, mpd.base.CommandError):
                 self.return_json({"Error": "No file exists"}, code=204)
@@ -296,8 +132,40 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/titles":
             self.return_json(list_titles(self.client, query))
 
+
+
+    def do_GET(self):
+        MPDRequestHandler.client = init_client(self.client)
+
+        path_explode = urllib.parse.urlparse(self.path)
+        orig_path = path_explode.path
+        path = remove_path_prefix(orig_path)
+        query = urllib.parse.parse_qs(path_explode.query, keep_blank_values=True)
+        query = {k: v[-1] for k, v in query.items()}
+
+        # Files
+        if path == "/":
+            with open("index.html", "r") as f:
+                self.send_headers()
+                self.wfile.write(f.read().encode("utf-8"))
+                return
+
+        if path == "/favicon.ico":
+            self.send_response(200)
+            self.end_headers()
+            return
+
+        if path == "/script.js":
+            with open("script.js", "r") as f:
+                self.send_headers(content_type="application/javascript")
+                self.wfile.write(f.read().encode("utf-8"))
+                return
+
+        # API
+        if path.startswith("/api/"):
+            self.handle_get_api(path, query)
         else:
-            self.return_json_fail(f"Unrecognised GET path: {path}")
+            self.return_html(html.handle_get(self.client, path, query))
 
     def do_POST(self):
         MPDRequestHandler.client = init_client(self.client)
@@ -306,207 +174,220 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         path = remove_path_prefix(path_explode.path)
 
         length = int(self.headers["Content-Length"])
-        post_data = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
 
-        if path == "/add":
-            try:
-                entry = post_data["entry"]
-                self.client.add(entry)
-                self.return_json({"added": 1})
-            except KeyError:
-                self.return_json_fail("Missing parameter, 'entry'")
-            except mpd.base.CommandError as e:
-                self.return_json_fail(str(e))
+        post_data = self.rfile.read(length).decode("utf-8") or "{}"
+        if self.headers["Content-Type"] == "application/x-www-form-urlencoded":
+            post_data = urllib.parse.parse_qs(post_data)
+            post_data = post_data["data"][0]
 
-        elif path == "/append":
-            self.return_json({"appended": insert(self.client, post_data, append=True)})
+        post_data = json.loads(post_data)
 
-        elif path == "/clear":
-            count = len(self.client.playlist())
-            self.client.clear()
-            self.return_json({"removed": count})
+        if path.startswith("/api/"):
+            path = path.removeprefix("/api")
+            if path == "/add":
+                try:
+                    entry = post_data["entry"]
+                    self.client.add(entry)
+                    self.return_json({"added": 1})
+                except KeyError:
+                    self.return_json_fail("Missing parameter, 'entry'")
+                except mpd.base.CommandError as e:
+                    self.return_json_fail(str(e))
 
-        elif path == "/consume":
-            state = post_data.get("enabled", ["1"])
+            elif path == "/append":
+                self.return_json(
+                    {"appended": insert(self.client, post_data, append=True)}
+                )
 
-            if not state in ("1", "0"):
-                self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
-                return
+            elif path == "/clear":
+                count = len(self.client.playlist())
+                self.client.clear()
+                self.return_json({"removed": count})
 
-            self.client.consume(state)
-            self.return_json({})
+            elif path == "/consume":
+                state = post_data.get("enabled", ["1"])
 
-        elif path == "/delete":
-            len_before = len(self.client.playlist())
-            try:
-                pos_from = max(0, post_data["from"])
-                pos_to = min(post_data["to"], len_before)
-            except KeyError:
-                self.return_json_fail("Missing parameter 'from' or 'to'")
+                if not state in ("1", "0"):
+                    self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
+                    return
 
-            self.client.delete((pos_from, pos_to))
-            len_after = len(self.client.playlist())
-            self.return_json({"removed": len_before - len_after})
+                self.client.consume(state)
+                self.return_json({})
 
-        elif path == "/disableoutput" or path == "/enableoutput":
-            try:
-                outputid = post_data["outputid"]
-            except KeyError:
-                self.return_json_fail("Missing parameter 'outputid'")
+            elif path == "/delete":
+                len_before = len(self.client.playlist())
+                try:
+                    pos_from = max(0, post_data["from"])
+                    pos_to = min(post_data["to"], len_before)
+                except KeyError:
+                    self.return_json_fail("Missing parameter 'from' or 'to'")
 
-            if path == "/enableoutput":
-                self.client.enableoutput(outputid)
-            else:
-                self.client.disableoutput(outputid)
-            self.return_json({})
+                self.client.delete((pos_from, pos_to))
+                len_after = len(self.client.playlist())
+                self.return_json({"removed": len_before - len_after})
 
-        elif path == "/insert":
-            self.return_json({"inserted": insert(self.client, post_data)})
+            elif path == "/disableoutput" or path == "/enableoutput":
+                try:
+                    outputid = post_data["outputid"]
+                except KeyError:
+                    self.return_json_fail("Missing parameter 'outputid'")
 
-        elif path == "/move":
-            if not ("from" in post_data and "to" in post_data):
-                self.return_json_fail("Missing parameter")
-
-            self.client.move(post_data["from"], post_data["to"])
-            self.return_json({})
-
-        elif path == "/next":
-            try:
-                 self.client.next()
-                 self.return_json({})
-            except mpd.base.CommandError as e:
-                 self.return_json_fail(str(e))
-
-        elif path == "/pause":
-            try:
-                if self.client.status()["state"] == "stop" and self.client.playlist():
-                    self.client.play(0)
+                if path == "/enableoutput":
+                    self.client.enableoutput(outputid)
                 else:
-                    self.client.pause()
+                    self.client.disableoutput(outputid)
                 self.return_json({})
-            except mpd.base.CommandError as e:
-                 self.return_json_fail(str(e))
 
-        elif path == "/play":
-            try:
-                play_id = int(post_data["id"])
-                self.client.play(play_id)
+            elif path == "/insert":
+                self.return_json({"inserted": insert(self.client, post_data)})
+
+            elif path == "/move":
+                if not ("from" in post_data and "to" in post_data):
+                    self.return_json_fail("Missing parameter")
+
+                self.client.move(post_data["from"], post_data["to"])
                 self.return_json({})
-            except ValueError:
-                self.return_json_fail("Invalid parameter, 'id'")
 
-        elif path == "/prev":
-            self.client.previous()
-            self.return_json({})
+            elif path == "/next":
+                try:
+                    self.client.next()
+                    self.return_json({})
+                except mpd.base.CommandError as e:
+                    self.return_json_fail(str(e))
 
-        elif path == "/random":
-            state = post_data.get("enabled", ["1"])
+            elif path == "/pause":
+                try:
+                    if (
+                        self.client.status()["state"] == "stop"
+                        and self.client.playlist()
+                    ):
+                        self.client.play(0)
+                    else:
+                        self.client.pause()
+                    self.return_json({})
+                except mpd.base.CommandError as e:
+                    self.return_json_fail(str(e))
 
-            if not state in ("1", "0"):
-                self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
-                return
+            elif path == "/play":
+                try:
+                    play_id = int(post_data["id"])
+                    self.client.play(play_id)
+                    self.return_json({})
+                except ValueError:
+                    self.return_json_fail("Invalid parameter, 'id'")
 
-            self.client.random(state)
-            self.return_json({})
+            elif path == "/prev":
+                self.client.previous()
+                self.return_json({})
 
-        elif path == "/remove":
-            removed = 0
-            if "ids" in post_data:
-                removed = remove_from_queue_by_id(self.client, post_data["ids"])
+            elif path == "/random":
+                state = post_data.get("enabled", ["1"])
+
+                if not state in ("1", "0"):
+                    self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
+                    return
+
+                self.client.random(state)
+                self.return_json({})
+
+            elif path == "/remove":
+                removed = 0
+                if "ids" in post_data:
+                    removed = remove_from_queue_by_id(self.client, post_data["ids"])
+
+                else:
+                    for key in ("artist", "albumartist", "album", "title", "name"):
+                        if key in post_data:
+                            removed += remove_from_queue_by_search(
+                                self.client, key, post_data[key]
+                            )
+
+                self.return_json({"removed": removed})
+
+            elif path == "/removeplaylist":
+                self.client.rm(post_data["playlist"])
+                self.return_json({"removed": post_data["playlist"]})
+
+            elif path == "/repeat":
+                state = post_data.get("enabled", ["1"])
+
+                if not state in ("1", "0"):
+                    self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
+                    return
+
+                self.client.repeat(state)
+                self.return_json({})
+
+            elif path == "/save":
+                try:
+                    name = post_data["name"]
+                    self.client.save(name)
+                    self.return_json({"saved": name})
+                except KeyError:
+                    self.return_json_fail("Missing parameter, 'name'")
+                except mpd.base.CommandError as e:
+                    self.return_json_fail(str(e))
+
+            elif path == "/seek":
+                if "time" in post_data:
+                    try:
+                        new_time = float(post_data["time"])
+                        self.client.seekcur(new_time)
+                        self.return_json({})
+                    except ValueError:
+                        self.return_json_fail("Invalid parameter, 'time'")
+
+                elif "percentage" in post_data:
+                    try:
+                        perc = float(post_data["percentage"])
+                        status = self.client.status()
+                        new_time = (perc / 100) * float(status["duration"])
+                        self.client.seekcur(new_time)
+                        self.return_json({})
+                    except ValueError:
+                        self.return_json_fail("Invalid parameter, 'percentage'")
+
+            elif path == "/shuffle":
+                self.client.shuffle()
+                self.return_json({})
+
+            elif path == "/single":
+                state = post_data.get("enabled", ["1"])
+
+                if not state in ("1", "0"):
+                    self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
+                    return
+
+                self.client.single(state)
+                self.return_json({})
+
+            elif path == "/stop":
+                self.client.stop()
+                self.return_json({})
+
+            elif path == "/update":
+                self.client.update()
+                self.return_json({})
+
+            elif path == "/volume":
+                try:
+                    if "volume" in post_data:
+                        # Adjust relative volume
+                        vol = int(post_data["volume"])
+                        self.client.volume(vol)
+
+                    elif "setvol" in post_data:
+                        # Set new absolute volume
+                        vol = int(post_data["setvol"])
+                        self.client.setvol(vol)
+
+                    new_volume = self.client.status()["volume"]
+                    self.return_json({"volume": new_volume})
+                except mpd.base.CommandError as e:
+                    self.return_json_fail(str(e))
 
             else:
-                for key in ("artist", "albumartist", "album", "title", "name"):
-                    if key in post_data:
-                        removed += remove_from_queue_by_search(
-                            self.client, key, post_data[key]
-                        )
-
-            self.return_json({"removed": removed})
-
-        elif path == "/removeplaylist":
-            self.client.rm(post_data["playlist"])
-            self.return_json({"removed": post_data["playlist"]})
-
-        elif path == "/repeat":
-            state = post_data.get("enabled", ["1"])
-
-            if not state in ("1", "0"):
-                self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
-                return
-
-            self.client.repeat(state)
-            self.return_json({})
-
-        elif path == "/save":
-            try:
-                name = post_data["name"]
-                self.client.save(name)
-                self.return_json({"saved": name})
-            except KeyError:
-                self.return_json_fail("Missing parameter, 'name'")
-            except mpd.base.CommandError as e:
-                self.return_json_fail(str(e))
-
-        elif path == "/seek":
-            if "time" in post_data:
-                try:
-                    new_time = float(post_data["time"])
-                    self.client.seekcur(new_time)
-                    self.return_json({})
-                except ValueError:
-                    self.return_json_fail("Invalid parameter, 'time'")
-
-            elif "percentage" in post_data:
-                try:
-                    perc = float(post_data["percentage"])
-                    status = self.client.status()
-                    new_time = (perc / 100) * float(status["duration"])
-                    self.client.seekcur(new_time)
-                    self.return_json({})
-                except ValueError:
-                    self.return_json_fail("Invalid parameter, 'percentage'")
-
-        elif path == "/shuffle":
-            self.client.shuffle()
-            self.return_json({})
-
-        elif path == "/single":
-            state = post_data.get("enabled", ["1"])
-
-            if not state in ("1", "0"):
-                self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
-                return
-
-            self.client.single(state)
-            self.return_json({})
-
-        elif path == "/stop":
-            self.client.stop()
-            self.return_json({})
-
-        elif path == "/update":
-            self.client.update()
-            self.return_json({})
-
-        elif path == "/volume":
-            try:
-                if "volume" in post_data:
-                    # Adjust relative volume
-                    vol = int(post_data["volume"])
-                    self.client.volume(vol)
-
-                elif "setvol" in post_data:
-                    # Set new absolute volume
-                    vol = int(post_data["setvol"])
-                    self.client.setvol(vol)
-
-                new_volume = self.client.status()["volume"]
-                self.return_json({"volume": new_volume})
-            except mpd.base.CommandError as e:
-                self.return_json_fail(str(e))
-
-        else:
-            self.return_json_fail(f"Unrecognised POST path: {path}")
+                self.return_json_fail(f"Unrecognised POST path: {path}")
 
 
 if __name__ == "__main__":
