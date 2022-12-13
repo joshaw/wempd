@@ -141,8 +141,9 @@ def insert(client, query, append=False):
             start_pos = int(status["song"]) + 1
 
     count = 0
-    if query.get("playlist"):
+    if "playlist" in query:
         if append:
+            print(query)
             client.load(query["playlist"])
         else:
             playlist = client.listplaylist(query["playlist"])

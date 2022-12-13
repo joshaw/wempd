@@ -34,6 +34,7 @@ def get_header(client):
             margin: 10px auto;
             padding: 10px;
         }
+        div { line-height: 2em; }
         form { display: inline-block; }
         table td:first-child { font-weight: bold; }
         #current {
@@ -62,10 +63,12 @@ def get_header(client):
         "<div style='line-height: 2em'>",
         " | ".join(
             [
+                html_link("/mpd/status/", "Status"),
                 html_link("/mpd/queue/", "Queue", anchor="current"),
                 html_link("/mpd/albumartists/", "AlbumArtists"),
                 html_link("/mpd/artists/", "Artists"),
                 html_link("/mpd/albums/", "Albums"),
+                html_link("/mpd/playlists/", "Playlists"),
             ]
         ),
         "</div>",
@@ -78,30 +81,73 @@ def handle_get(client, path, query):
     header = "Unknown?"
     data = {}
     thelist = []
-    if path_parts[0] == "queue":
+    if path_parts[0] == "status":
+        status = client.status()
+
+        def gen_mode_button(mode):
+            enabled = status[mode] == "1"
+            data = "0" if enabled else "1"
+            return [
+                "</tr><tr>",
+                f"<td>{mode.title()} mode:</td><td>",
+                'enabled' if enabled else 'disabled',
+                "</td><td>",
+                html_form_link(
+                    f"/mpd/api/{mode}",
+                    {"enabled": data},
+                    "disable" if enabled else "enable",
+                ),
+            ]
+
+        volume = status["volume"]
+        print(status)
         return [
+            f"<h1>Status</h1>",
+            "<table>",
+            f"<tr><td>Volume:</td><td>{volume}</td><td>",
+            html_form_link("/mpd/api/volume", {"volume": -10}, "-10"),
+            html_form_link("/mpd/api/volume", {"volume": -5}, "-5"),
+            html_form_link("/mpd/api/volume", {"volume": -1}, "-1"),
+            html_form_link("/mpd/api/volume", {"volume": +1}, "+1"),
+            html_form_link("/mpd/api/volume", {"volume": +5}, "+5"),
+            html_form_link("/mpd/api/volume", {"volume": +10}, "+10"),
+            "</td>",
+            *gen_mode_button("repeat"),
+            *gen_mode_button("random"),
+            *gen_mode_button("single"),
+            *gen_mode_button("consume"),
+            "</tr></table>",
+        ]
+
+    elif path_parts[0] == "queue":
+        thelist = [
             "<h1>Queue</h1>",
+            "<div>",
+            html_form_link("/mpd/api/clear", {}, "Clear queue"),
+            "</div>",
             "<ol>",
-            *[
+        ]
+        for song in api.list_queue(client):
+            artist = song.get("albumartist", song.get("artist"))
+            album = song.get("album")
+            title = song.get("title", song.get("name", song.get("file")))
+            href = f"../albumartists/{artist}/{album}/{title}"
+            thelist.append(
                 f"<li {'id=current' if 'current' in song else ''}>"
                 + "<br/>".join(
                     [
-                        html_link(
-                            f"../albumartists/{song['artist']}/{song['album']}/{song['title']}",
-                            song["title"],
-                        )
+                        html_link(href, title)
                         + " "
                         + html_form_link(
                             "/mpd/api/play", {"id": song["pos"]}, "Play now"
                         ),
-                        f"{song['artist']} - {song['album']}",
+                        f"{artist} - {album}",
                     ]
                 )
                 + "</li>"
-                for song in api.list_queue(client)
-            ],
-            "</ol>",
-        ]
+            )
+        thelist.append("</ol>")
+        return thelist
 
     elif path_parts[0] == "search":
         query = query.get("s")
@@ -127,6 +173,32 @@ def handle_get(client, path, query):
                     + html_link(href, song["title"])
                     + f"<br/>{song['artist']} - {song['album']}</li>"
                 )
+            thelist.append("</ul>")
+
+    elif path_parts[0] == "playlists":
+        if len(path_parts) == 1:
+            header = "Playlists"
+            data = {}
+            thelist = [
+                "<ul>",
+                *[
+                    "<li>" + html_link(f"{a}/", a) + "</li>"
+                    for a in api.list_playlists(client)
+                ],
+                "</ul>",
+            ]
+
+        elif len(path_parts) == 2:
+            header = " / ".join([html_link("../", "Playlists"), path_parts[1]])
+            data = {"playlist": path_parts[1]}
+            thelist = ["<ul>"]
+            for song in api.list_titles(client, {"playlist": path_parts[1]}):
+                name = song.get("title")
+                if not name:
+                    name = song.get("name")
+                if not name:
+                    name = song.get("file")
+                thelist.append(f"<li>{name}</li>")
             thelist.append("</ul>")
 
     elif path_parts[0] == "albumartists" or path_parts[0] == "artists":
@@ -288,12 +360,13 @@ def handle_get(client, path, query):
                 "</table>",
             ]
 
-    return [
-        f"<h1>{header}</h1>",
+    lines = [f"<h1>{header}</h1>"]
+    if data:
+        lines.extend([
         "<p>",
         html_form_link("/mpd/api/insert", data, "Add after current"),
         html_form_link("/mpd/api/append", data, "Append to queue"),
         "</p>",
-        "<hr>",
-        *thelist,
-    ]
+    ])
+    lines.extend(thelist)
+    return lines

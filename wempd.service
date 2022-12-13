@@ -6,6 +6,7 @@ After=network.target
 SyslogIdentifier=wempd
 ExecStart=/usr/bin/python3 -u wempd.py
 WorkingDirectory=/home/josh/wempd
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

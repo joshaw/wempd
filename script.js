@@ -135,7 +135,7 @@ function debounce(func, wait) {
 // Network functions //////////////////////////////////////////////////////////
 function fetch_json(url, params) {
 	//console.error('fetch json, ', url);
-	return fetch(url_with_params(url, params), {method: 'GET'})
+	return fetch(url_with_params("api/" + url, params), {method: 'GET'})
 		.then((result) => {
 			if (result.ok) { return result.json(); }
 
@@ -146,7 +146,7 @@ function fetch_json(url, params) {
 
 function fetch_blob(url, params) {
 	//console.error('fetch blob, ', url);
-	return fetch(url_with_params(url, params), {'method': 'GET'})
+	return fetch(url_with_params("api/" + url, params), {'method': 'GET'})
 		.catch((error) => {
 			show_error(`Cannot connect to server: ${error}`);
 			return {};
@@ -155,7 +155,7 @@ function fetch_blob(url, params) {
 
 function post_json(url, data) {
 	//console.error('post json, ', url);
-	return fetch(url, {
+	return fetch("api/" + url, {
 			method: 'POST',
 			headers: {'Content-Type': 'application/json'},
 			body: JSON.stringify(data),
