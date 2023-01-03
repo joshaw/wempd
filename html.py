@@ -1,12 +1,17 @@
 import json
+import re
 from urllib.parse import quote_plus, unquote_plus
 
 import api
 
 
-def html_link(href, text, anchor=None):
-    anchor = f"#{anchor}" if anchor else ""
-    return f"<a href='{quote_plus(href, safe='/')}{anchor}'>{text}</a>"
+def html_link(text, *href, root=False, folder=True, anchor=None):
+    if href[0].startswith("http://") or href[0].startswith("https://"):
+        href = href[0]
+    else:
+        href = "/".join((quote_plus(h) for h in href))
+        href = f"{'/' if root else ''}{href}{'/' if folder else ''}{'#' + anchor if anchor else ''}"
+    return f"<a href='{href}'>{text}</a>"
 
 
 def html_form_link(href, data, text):
@@ -79,25 +84,73 @@ def get_header(client):
         "<div style='line-height: 2em'>",
         " | ".join(
             [
-                html_link("/mpd/status/", "Status"),
-                html_link("/mpd/queue/", "Queue", anchor="current"),
-                html_link("/mpd/albumartists/", "AlbumArtists"),
-                html_link("/mpd/artists/", "Artists"),
-                html_link("/mpd/albums/", "Albums"),
-                html_link("/mpd/playlists/", "Playlists"),
+                html_link("Status", "mpd", "status", root=True, folder=False),
+                html_link("Queue", "mpd", "queue", anchor="current", root=True, folder=False),
+                html_link("AlbumArtists", "mpd", "albumartists", root=True),
+                html_link("Artists", "mpd", "artists", root=True),
+                html_link("Albums", "mpd", "albums", root=True),
+                html_link("Playlists", "mpd", "playlists", root=True),
             ]
         ),
         "</div>",
     ]
 
 
+def create_list_page(header, data, thelist):
+    lines = [f"<h1>{header}</h1>"]
+    if data:
+        lines.extend(
+            [
+                "<p>",
+                html_form_link("/mpd/api/insert", data, "Add after current"),
+                html_form_link("/mpd/api/append", data, "Append to queue"),
+                "</p>",
+            ]
+        )
+    lines.extend(thelist)
+    return lines
+
+
+def create_song_page(client, header, data):
+    song_info = client.find(*api.info_pairs(data))[0]
+    thelist = ["<table>"]
+    for key, value in sorted(song_info.items()):
+        href = None
+        if key == "artist":
+            href = ("mpd", "artists", value)
+        elif key == "albumartist":
+            href = ("mpd", "albumartists", value)
+        elif key == "album":
+            href = ("mpd", "albums", value)
+        elif key == "duration":
+            value = f"{int(float(value)/60)}:{int(float(value)%60)} ({value})"
+        elif key == "musicbrainz_albumartistid":
+            key = "MB AlbumArtist ID"
+            href = (f"https://musicbrainz.org/artist/{value}",)
+        elif key == "musicbrainz_albumid":
+            key = "MB Album ID"
+            href = (f"https://musicbrainz.org/album/{value}",)
+        elif key == "musicbrainz_artistid":
+            key = "MB Artist ID"
+            href = (f"https://musicbrainz.org/artist/{value}",)
+        elif key == "musicbrainz_trackid":
+            key = "MB Track ID"
+            href = (f"https://musicbrainz.org/recording/{value}",)
+        if href:
+            value = html_link(value, *href, root=True)
+        thelist.append(f"<tr><td>{key}</td><td>{value}</td></tr>")
+    thelist.append("</table>")
+    return create_list_page(header, data, thelist)
+
+
 def handle_get(client, path, query):
-    path_parts = unquote_plus(path).removeprefix("/").removesuffix("/").split("/")
+    path_parts = [unquote_plus(p) for p in path.removeprefix("/").removesuffix("/").split("/")]
+    print(path, path_parts)
 
     header = "Unknown?"
     data = {}
     thelist = []
-    if path_parts[0] == "status":
+    if path == "/status":
         status = client.status()
 
         def gen_mode_button(mode):
@@ -130,7 +183,7 @@ def handle_get(client, path, query):
             "</table>",
         ]
 
-    elif path_parts[0] == "queue":
+    elif path == "/queue":
         thelist = [
             "<h1>Queue</h1>",
             "<div>",
@@ -142,7 +195,8 @@ def handle_get(client, path, query):
             artist = song.get("albumartist", song.get("artist"))
             album = song.get("album")
             title = song.get("title", song.get("name", song.get("file")))
-            href = f"../albumartists/{artist}/{album}/{title}"
+
+            song_link = html_link(title, "albumartists", artist, album, title, folder=False)
             current = "current" in song
 
             play_now = ""
@@ -155,7 +209,7 @@ def handle_get(client, path, query):
                 f"<li {'id=current' if current else ''}>"
                 + "<br/>".join(
                     [
-                        html_link(href, title) + " " + play_now,
+                        song_link + " " + play_now,
                         f"{artist} - {album}",
                     ]
                 )
@@ -164,209 +218,180 @@ def handle_get(client, path, query):
         thelist.append("</ol>")
         return thelist
 
-    elif path_parts[0] == "search":
+    elif path == "/search":
         query = query.get("s")
 
-        header = "Search Results"
-        data = None
         thelist = []
         if query and len(query) >= 3:
             thelist.append("<ul>")
             for song in sorted(client.search("any", query), key=lambda x: x["title"]):
                 artist_type = "albumartists" if "albumartist" in song else "artists"
-                href = "/".join(
-                    [
+                href = (
                         "..",
                         artist_type,
                         song.get("albumartist", song.get("artist")),
                         song["album"],
                         song["title"],
-                    ]
-                )
+                    )
                 thelist.append(
                     "<li>"
-                    + html_link(href, song["title"])
+                    + html_link(song["title"], *href)
                     + f"<br/>{song['artist']} - {song['album']}</li>"
                 )
             thelist.append("</ul>")
+        return create_list_page("Search Results", None, thelist)
 
-    elif path_parts[0] == "playlists":
-        if len(path_parts) == 1:
-            header = "Playlists"
-            data = {}
-            thelist = [
+    elif path == "/playlists/":
+        return create_list_page(
+            "Playlists",
+            {},
+            [
                 "<ul>",
                 *[
-                    "<li>" + html_link(f"{a}/", a) + "</li>"
+                    "<li>" + html_link(a, a) + "</li>"
                     for a in api.list_playlists(client)
                 ],
                 "</ul>",
-            ]
+            ],
+        )
 
-        elif len(path_parts) == 2:
-            header = " / ".join([html_link("../", "Playlists"), path_parts[1]])
-            data = {"playlist": path_parts[1]}
-            thelist = ["<ul>"]
-            for song in api.list_titles(client, {"playlist": path_parts[1]}):
-                name = song.get("title")
-                if not name:
-                    name = song.get("name")
-                if not name:
-                    name = song.get("file")
-                thelist.append(f"<li>{name}</li>")
-            thelist.append("</ul>")
+    elif re.fullmatch("/playlists/[^/]+", path):
+        playlist_name = path_parts[1]
+        header = " / ".join([html_link("Playlists", ".."), playlist_name])
+        data = {"playlist": playlist_name}
+        thelist = ["<ul>"]
+        for song in api.list_titles(client, {"playlist": playlist_name}):
+            name = song.get("title")
+            if not name:
+                name = song.get("name")
+            if not name:
+                name = song.get("file")
+            thelist.append(f"<li>{name}</li>")
+        thelist.append("</ul>")
+        return create_list_page(header, data, thelist)
 
-    elif path_parts[0] == "albumartists" or path_parts[0] == "artists":
-        artist_type = "albumartist" if path_parts[0] == "albumartists" else "artist"
-
-        if len(path_parts) == 1:
-            list_func = (
-                api.list_albumartists
-                if path_parts[0] == "albumartists"
-                else api.list_artists
-            )
-            header = path_parts[0].title()
-            data = {}
-            thelist = [
-                "<ul>",
-                *["<li>" + html_link(f"{a}/", a) + "</li>" for a in list_func(client)],
-                "</ul>",
-            ]
-
-        elif len(path_parts) == 2:
-            header = " / ".join(
-                [html_link("../", path_parts[0].title()), path_parts[1]]
-            )
-            data = {"artist": path_parts[1]}
-            thelist = [
-                "<ul>",
-                "<li>" + html_link("tracks/", "All") + "</li>",
-                *[
-                    "<li>" + html_link(f"{a}/", a) + "</li>"
-                    for a in api.list_albums(
-                        client,
-                        {artist_type: path_parts[1]},
-                    )
-                ],
-                "</ul>",
-            ]
-
-        elif len(path_parts) == 3:
-            track_listing = path_parts[2] == "tracks"
-            header = " / ".join(
-                [
-                    html_link("../../", path_parts[0].title()),
-                    html_link("../", path_parts[1]),
-                    path_parts[2],
-                ]
-            )
-            data = {
-                artist_type: path_parts[1],
-                "album": None if track_listing else path_parts[2],
-            }
-
-            thelist = ["<ul>" if track_listing else "<ol>"]
-            sort_func = lambda a: a["title"] if track_listing else int(a["track"])
-            for a in sorted(api.list_titles(client, data), key=sort_func):
-                value = a["track"]
-                link = html_link(f"{a['title']}", a["title"])
-                thelist.append(f"<li value='{value}'>{link}</li>")
-            thelist.append("</ul>" if track_listing else "</ol>")
-
-        elif len(path_parts) == 4:
-            header = " / ".join(
-                [
-                    html_link("../../", path_parts[0].title()),
-                    html_link("../", path_parts[1]),
-                    html_link(".", path_parts[2]),
-                    path_parts[3],
-                ]
-            )
-            data = {
-                artist_type: path_parts[1],
-                "album": None if path_parts[2] == "tracks" else path_parts[2],
-                "title": path_parts[3],
-            }
-            song_info = client.find(*api.info_pairs(data))[0]
-
-            thelist = ["<table>"]
-            artist = song_info.get("albumartist", song_info.get("artist"))
-            artist_type = "albumartists" if "albumartist" in song_info else "artists"
-            for key, value in sorted(song_info.items()):
-                href = {
-                    "artist": f"/mpd/artists/{value}/",
-                    "albumartist": f"/mpd/albumartists/{value}/",
-                    "album": f"/mpd/{artist_type}/{artist}/{value}/",
-                    "title": f"/mpd/{artist_type}/{artist}/{song_info['album']}/{value}",
-                }.get(key)
-                if href:
-                    value = html_link(href, value)
-                thelist.append(f"<tr><td>{key}</td><td>{value}</td></tr>")
-            thelist.append("</table>")
-
-        else:
-            return ["<h1>Error</h1>", f"<p>Unrecognised request: {path}</p>"]
-
-    elif path_parts[0] == "albums":
-        if len(path_parts) == 1:
-            header = "Albums"
-            data = {}
-            thelist = [
-                "<ul>",
-                *[
-                    "<li>" + html_link(f"{a}/", a) + "</li>"
-                    for a in api.list_albums(client, {})
-                ],
-                "</ul>",
-            ]
-
-        if len(path_parts) == 2:
-            header = " / ".join(
-                [
-                    html_link("../", path_parts[0].title()),
-                    path_parts[1],
-                ]
-            )
-            data = {"album": path_parts[1]}
-            thelist = [
-                "<ol>",
-                *[
-                    f"<li value='{a['track']}'>"
-                    + html_link(f"{a['title']}", a["title"])
-                    + "</li>"
-                    for a in api.list_titles(client, data)
-                ],
-                "</ol>",
-            ]
-
-        if len(path_parts) == 3:
-            header = " / ".join(
-                [
-                    html_link("../", "Albums"),
-                    html_link(".", path_parts[1]),
-                    path_parts[2],
-                ]
-            )
-            data = {"album": path_parts[1], "title": path_parts[2]}
-            song_info = client.find(*api.info_pairs(data))[0]
-            thelist = [
-                "<table>",
-                *[
-                    f"<tr><td>{key}</td><td>{value}</td></tr>"
-                    for key, value in sorted(song_info.items())
-                ],
-                "</table>",
-            ]
-
-    lines = [f"<h1>{header}</h1>"]
-    if data:
-        lines.extend(
+    elif path == "/albumartists/" or path == "/artists/":
+        list_func = (
+            api.list_albumartists
+            if path_parts[0] == "albumartists"
+            else api.list_artists
+        )
+        return create_list_page(
+            path_parts[0].title(),
+            {},
             [
-                "<p>",
-                html_form_link("/mpd/api/insert", data, "Add after current"),
-                html_form_link("/mpd/api/append", data, "Append to queue"),
-                "</p>",
+                "<ul>",
+                *["<li>" + html_link(a, a) + "</li>" for a in list_func(client)],
+                "</ul>",
+            ],
+        )
+
+    elif re.fullmatch("/(album)?artists/[^/]+/", path):
+        artist_type = "albumartist" if path_parts[0] == "albumartists" else "artist"
+        header = " / ".join([html_link(path_parts[0].title(), ".."), path_parts[1]])
+        data = {"artist": path_parts[1]}
+        thelist = [
+            "<ul>",
+            "<li>" + html_link("All", "tracks") + "</li>",
+            *[
+                "<li>" + html_link(a, a) + "</li>"
+                for a in api.list_albums(
+                    client,
+                    {artist_type: path_parts[1]},
+                )
+            ],
+            "</ul>",
+        ]
+        return create_list_page(header, data, thelist)
+
+    elif re.fullmatch("/(album)?artists/[^/]+/[^/]+/", path):
+        artist_type = path_parts[0].removesuffix("s")
+        all_tracks = path_parts[2] == "tracks"
+        header = " / ".join(
+            [
+                html_link(path_parts[0].title(), "..", ".."),
+                html_link(path_parts[1], ".."),
+                path_parts[2],
             ]
         )
-    lines.extend(thelist)
-    return lines
+        data = {
+            artist_type: path_parts[1],
+            "album": None if all_tracks else path_parts[2],
+        }
+
+        thelist = ["<ul>" if all_tracks else "<ol>"]
+        sort_func = lambda a: a["title"] if all_tracks else int(a["track"])
+        for a in sorted(api.list_titles(client, data), key=sort_func):
+            value = a["track"]
+            link = html_link(a["title"], a["title"], folder=False)
+            thelist.append(f"<li value='{value}'>{link}</li>")
+        thelist.append("</ul>" if all_tracks else "</ol>")
+        return create_list_page(header, data, thelist)
+
+    elif re.fullmatch("/(album)?artists/[^/]+/[^/]+/[^/]+", path):
+        artist_type = path_parts[0].removesuffix("s")
+        artist_name = path_parts[1]
+        album_name = path_parts[2]
+        track_name = path_parts[3]
+
+        header = " / ".join(
+            [
+                html_link(path_parts[0].title(), "../../"),
+                html_link(artist_name, "../"),
+                html_link(album_name, "."),
+                path_parts[3],
+            ]
+        )
+        data = {
+            artist_type: artist_name,
+            "album": None if album_name == "tracks" else album_name,
+            "title": track_name,
+        }
+        return create_song_page(client, header, data)
+
+    elif path == "/albums/":
+        thelist = [
+            "<ul>",
+            *[
+                "<li>" + html_link(a, a) + "</li>"
+                for a in api.list_albums(client, {})
+            ],
+            "</ul>",
+        ]
+        return create_list_page("Albums", {}, thelist)
+
+    elif re.fullmatch("/albums/[^/]+/", path):
+        header = " / ".join(
+            [
+                html_link(path_parts[0].title(), ".."),
+                path_parts[1],
+            ]
+        )
+        data = {"album": path_parts[1]}
+        thelist = [
+            "<ol>",
+            *[
+                f"<li value='{a['track']}'>"
+                + html_link(a["title"], a["title"], folder=False)
+                + "</li>"
+                for a in api.list_titles(client, data)
+            ],
+            "</ol>",
+        ]
+        return create_list_page(header, data, thelist)
+
+    elif re.fullmatch("/albums/[^/]+/[^/]+", path):
+        album_name = path_parts[1]
+        track_name = path_parts[2]
+
+        header = " / ".join(
+            [
+                html_link("Albums", ".."),
+                html_link(album_name, "."),
+                track_name,
+            ]
+        )
+        data = {"album": album_name, "title": track_name}
+        return create_song_page(client, header, data)
+
+    return ["<h1>Page not found</h1>", f"<p>{path}</p>"]
