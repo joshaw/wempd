@@ -85,7 +85,9 @@ def get_header(client):
         " | ".join(
             [
                 html_link("Status", "mpd", "status", root=True, folder=False),
-                html_link("Queue", "mpd", "queue", anchor="current", root=True, folder=False),
+                html_link(
+                    "Queue", "mpd", "queue", anchor="current", root=True, folder=False
+                ),
                 html_link("AlbumArtists", "mpd", "albumartists", root=True),
                 html_link("Artists", "mpd", "artists", root=True),
                 html_link("Albums", "mpd", "albums", root=True),
@@ -143,9 +145,28 @@ def create_song_page(client, header, data):
     return create_list_page(header, data, thelist)
 
 
+def fmt_secs(s):
+    yrs = int(s / 31536000)
+    s = s % 31536000
+    days = int(s / 86400)
+    s = s % 86400
+    hrs = int(s / 3600)
+    s = s % 3600
+    mins = int(s / 60)
+    secs = int(s % 60)
+    return ', '.join(x for x in [
+        f"{yrs} years" if yrs else "",
+        f"{days} days" if days else "",
+        f"{hrs} hours" if hrs else "",
+        f"{mins} mins" if mins else "",
+        f"{secs} secs" if secs else "",
+    ] if x)
+
+
 def handle_get(client, path, query):
-    path_parts = [unquote_plus(p) for p in path.removeprefix("/").removesuffix("/").split("/")]
-    print(path, path_parts)
+    path_parts = [
+        unquote_plus(p) for p in path.removeprefix("/").removesuffix("/").split("/")
+    ]
 
     header = "Unknown?"
     data = {}
@@ -164,7 +185,9 @@ def handle_get(client, path, query):
             value = "✓" if enabled else "✗"
             return [f"<tr><td>{title}:</td><td>{value}</td><td>{button}</td></tr>"]
 
-        volume = status["volume"]
+        stats = client.stats()
+
+        volume = status.get("volume", "unknown")
         return [
             f"<h1>Status</h1>",
             "<table>",
@@ -181,6 +204,18 @@ def handle_get(client, path, query):
             *gen_mode_button("single"),
             *gen_mode_button("consume"),
             "</table>",
+            "<h2>Library</h2>",
+            "<table>",
+            f"<tr><td>Up time:</td><td>{fmt_secs(int(stats['uptime']))}</td></tr>",
+            f"<tr><td>Play time:</td><td>{fmt_secs(int(stats['playtime']))}</td></tr>",
+            "<tr><td>&nbsp;</td></tr>",
+            f"<tr><td># Artists:</td><td>{int(stats['artists']):,.0f}</td></tr>",
+            f"<tr><td># Albums:</td><td>{int(stats['albums']):,.0f}</td></tr>",
+            f"<tr><td># Songs:</td><td>{int(stats['songs']):,.0f}</td></tr>",
+            "<tr><td>&nbsp;</td></tr>",
+            f"<tr><td>DB Play time:</td><td>{fmt_secs(int(stats['db_playtime']))}</td></tr>",
+            f"<tr><td>DB updated:</td><td>{stats['db_update']}</td></tr>",
+            "</table>",
         ]
 
     elif path == "/queue":
@@ -196,7 +231,9 @@ def handle_get(client, path, query):
             album = song.get("album")
             title = song.get("title", song.get("name", song.get("file")))
 
-            song_link = html_link(title, "albumartists", artist, album, title, folder=False)
+            song_link = html_link(
+                title, "albumartists", artist, album, title, folder=False
+            )
             current = "current" in song
 
             play_now = ""
@@ -227,12 +264,12 @@ def handle_get(client, path, query):
             for song in sorted(client.search("any", query), key=lambda x: x["title"]):
                 artist_type = "albumartists" if "albumartist" in song else "artists"
                 href = (
-                        "..",
-                        artist_type,
-                        song.get("albumartist", song.get("artist")),
-                        song["album"],
-                        song["title"],
-                    )
+                    "..",
+                    artist_type,
+                    song.get("albumartist", song.get("artist")),
+                    song["album"],
+                    song["title"],
+                )
                 thelist.append(
                     "<li>"
                     + html_link(song["title"], *href)
@@ -352,10 +389,7 @@ def handle_get(client, path, query):
     elif path == "/albums/":
         thelist = [
             "<ul>",
-            *[
-                "<li>" + html_link(a, a) + "</li>"
-                for a in api.list_albums(client, {})
-            ],
+            *["<li>" + html_link(a, a) + "</li>" for a in api.list_albums(client, {})],
             "</ul>",
         ]
         return create_list_page("Albums", {}, thelist)
