@@ -5,7 +5,9 @@ from urllib.parse import quote_plus, unquote_plus
 import api
 
 
-def html_link(text, *href, root=False, folder=True, anchor=None):
+def html_link(text, href, root=False, folder=True, anchor=None):
+    if isinstance(href, str):
+        href = (href,)
     if href[0].startswith("http://") or href[0].startswith("https://"):
         href = href[0]
     else:
@@ -40,11 +42,23 @@ def get_header(client):
         }
         div { line-height: 2em; }
         form { display: inline-block; }
-        table td:first-child { font-weight: bold; }
+        table td:first-child {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        a[href^="http://"]::after, a[href^="https://"]::after {
+            content: '↗';
+            font-size: 65%;
+            vertical-align: text-top;
+        }
         #current {
             border-left: solid 2px;
             padding-left: 0.5em;
             font-weight: bold;
+        }
+        .hscroll {
+            white-space: nowrap;
+            overflow: scroll;
         }
         </style>
         <script>
@@ -67,7 +81,7 @@ def get_header(client):
         </head>
         <body>
         """,
-        "<div style='line-height: 2em'>",
+        "<div class='hscroll'>",
         " ".join(
             [
                 html_form_link(
@@ -80,18 +94,18 @@ def get_header(client):
                 "<form action='/mpd/search'><input name='s'/> <input type='submit' value='Search' /></form>",
             ]
         ),
-        "</div>",
-        "<div style='line-height: 2em'>",
+        "</div><div class='hscroll'>",
         " | ".join(
             [
-                html_link("Status", "mpd", "status", root=True, folder=False),
+                html_link("Status", ("mpd", "status"), root=True, folder=False),
                 html_link(
-                    "Queue", "mpd", "queue", anchor="current", root=True, folder=False
+                    "Queue", ("mpd", "queue"), anchor="current", root=True, folder=False
                 ),
-                html_link("AlbumArtists", "mpd", "albumartists", root=True),
-                html_link("Artists", "mpd", "artists", root=True),
-                html_link("Albums", "mpd", "albums", root=True),
-                html_link("Playlists", "mpd", "playlists", root=True),
+                html_link("AlbumArtists", ("mpd", "albumartists"), root=True),
+                html_link("Artists", ("mpd", "artists"), root=True),
+                html_link("Albums", ("mpd", "albums"), root=True),
+                html_link("Genres", ("mpd", "genres"), root=True),
+                html_link("Playlists", ("mpd", "playlists"), root=True),
             ]
         ),
         "</div>",
@@ -116,32 +130,53 @@ def create_list_page(header, data, thelist):
 def create_song_page(client, header, data):
     song_info = client.find(*api.info_pairs(data))[0]
     thelist = ["<table>"]
+    links = []
     for key, value in sorted(song_info.items()):
         href = None
         if key == "artist":
+            key = "Artist"
             href = ("mpd", "artists", value)
         elif key == "albumartist":
+            key = "Albumartist"
             href = ("mpd", "albumartists", value)
         elif key == "album":
+            key = "Album"
             href = ("mpd", "albums", value)
         elif key == "duration":
             value = f"{int(float(value)/60)}:{int(float(value)%60)} ({value})"
         elif key == "musicbrainz_albumartistid":
-            key = "MB AlbumArtist ID"
-            href = (f"https://musicbrainz.org/artist/{value}",)
+            key = None
+            href = f"https://musicbrainz.org/artist/{value}"
+            links.append(html_link("MB AlbumArtist ID", href, root=True))
         elif key == "musicbrainz_albumid":
-            key = "MB Album ID"
-            href = (f"https://musicbrainz.org/album/{value}",)
+            key = None
+            href = f"https://musicbrainz.org/album/{value}"
+            links.append(html_link("MB Album ID", href, root=True))
         elif key == "musicbrainz_artistid":
-            key = "MB Artist ID"
-            href = (f"https://musicbrainz.org/artist/{value}",)
+            key = None
+            href = f"https://musicbrainz.org/artist/{value}"
+            links.append(html_link("MB Artist ID", href, root=True))
         elif key == "musicbrainz_trackid":
-            key = "MB Track ID"
-            href = (f"https://musicbrainz.org/recording/{value}",)
+            key = None
+            href = f"https://musicbrainz.org/recording/{value}"
+            links.append(html_link("MB Recording ID", href, root=True))
+        elif key == "musicbrainz_releasetrackid":
+            key = None
+            href = f"https://musicbrainz.org/track/{value}"
+            links.append(html_link("MB Track ID", href, root=True))
+
         if href:
-            value = html_link(value, *href, root=True)
-        thelist.append(f"<tr><td>{key}</td><td>{value}</td></tr>")
+            value = html_link(value, href, root=True)
+
+        if key and value:
+            thelist.append(f"<tr><td>{key}</td><td>{value}</td></tr>")
     thelist.append("</table>")
+
+    thelist.append("<p>")
+    for link in links:
+        thelist.append(link)
+        thelist.append("<br/>")
+    thelist.append("</p>")
     return create_list_page(header, data, thelist)
 
 
@@ -154,13 +189,17 @@ def fmt_secs(s):
     s = s % 3600
     mins = int(s / 60)
     secs = int(s % 60)
-    return ', '.join(x for x in [
-        f"{yrs} years" if yrs else "",
-        f"{days} days" if days else "",
-        f"{hrs} hours" if hrs else "",
-        f"{mins} mins" if mins else "",
-        f"{secs} secs" if secs else "",
-    ] if x)
+    return ", ".join(
+        x
+        for x in [
+            f"{yrs} years" if yrs else "",
+            f"{days} days" if days else "",
+            f"{hrs} hours" if hrs else "",
+            f"{mins} mins" if mins else "",
+            f"{secs} secs" if secs else "",
+        ]
+        if x
+    )
 
 
 def handle_get(client, path, query):
@@ -219,20 +258,19 @@ def handle_get(client, path, query):
         ]
 
     elif path == "/queue":
+        queue = api.list_queue(client)
         thelist = [
-            "<h1>Queue</h1>",
-            "<div>",
+            f"<h1>Queue ({len(queue)})</h1>",
             html_form_link("/mpd/api/clear", {}, "Clear queue"),
-            "</div>",
             "<ol>",
         ]
-        for song in api.list_queue(client):
+        for song in queue:
             artist = song.get("albumartist", song.get("artist"))
             album = song.get("album")
             title = song.get("title", song.get("name", song.get("file")))
 
             song_link = html_link(
-                title, "albumartists", artist, album, title, folder=False
+                title, ("albumartists", artist, album, title), folder=False
             )
             current = "current" in song
 
@@ -261,7 +299,7 @@ def handle_get(client, path, query):
         thelist = []
         if query and len(query) >= 3:
             thelist.append("<ul>")
-            for song in sorted(client.search("any", query), key=lambda x: x["title"]):
+            for song in client.search("any", query):
                 artist_type = "albumartists" if "albumartist" in song else "artists"
                 href = (
                     "..",
@@ -272,8 +310,9 @@ def handle_get(client, path, query):
                 )
                 thelist.append(
                     "<li>"
-                    + html_link(song["title"], *href)
-                    + f"<br/>{song['artist']} - {song['album']}</li>"
+                    + f"{song['artist']} - {song['album']} - "
+                    + html_link(song["title"], href, folder=False)
+                    + "</li>"
                 )
             thelist.append("</ul>")
         return create_list_page("Search Results", None, thelist)
@@ -346,7 +385,7 @@ def handle_get(client, path, query):
         all_tracks = path_parts[2] == "tracks"
         header = " / ".join(
             [
-                html_link(path_parts[0].title(), "..", ".."),
+                html_link(path_parts[0].title(), ("..", "..")),
                 html_link(path_parts[1], ".."),
                 path_parts[2],
             ]
@@ -373,8 +412,8 @@ def handle_get(client, path, query):
 
         header = " / ".join(
             [
-                html_link(path_parts[0].title(), "../../"),
-                html_link(artist_name, "../"),
+                html_link(path_parts[0].title(), ("..", "..")),
+                html_link(artist_name, ".."),
                 html_link(album_name, "."),
                 path_parts[3],
             ]
@@ -427,5 +466,38 @@ def handle_get(client, path, query):
         )
         data = {"album": album_name, "title": track_name}
         return create_song_page(client, header, data)
+
+    elif path == "/genres/":
+        thelist = [
+            "<ul>",
+            *["<li>" + html_link(a, a) + "</li>" for a in api.list_genres(client)],
+            "</ul>",
+        ]
+        return create_list_page("Genres", {}, thelist)
+
+    elif re.fullmatch("/genres/[^/]*/", path):
+        header = " / ".join(
+            [
+                html_link(path_parts[0].title(), ".."),
+                path_parts[1],
+            ]
+        )
+        data = {"genre": path_parts[1]}
+        thelist = [
+            "<ul>",
+            *[
+                f"<li>{a['artist']} - {a['album']} - "
+                + html_link(
+                    a["title"],
+                    ("mpd", "artists", a["artist"], a["album"], a["title"]),
+                    root=True,
+                    folder=False,
+                )
+                + "</li>"
+                for a in api.list_titles(client, data)
+            ],
+            "</ul>",
+        ]
+        return create_list_page(header, data, thelist)
 
     return ["<h1>Page not found</h1>", f"<p>{path}</p>"]

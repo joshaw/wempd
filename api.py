@@ -43,7 +43,7 @@ def get_status(client):
 
 def info_pairs(data, allowed_fields=None):
     cmd = []
-    fields = {"artist", "albumartist", "album", "title", "name", "file", "group"}
+    fields = {"artist", "albumartist", "album", "title", "name", "file", "group", "genre"}
     if not allowed_fields:
         allowed_fields = fields
 
@@ -67,6 +67,10 @@ def list_albums(client, query):
     return [a["album"] for a in client.list("album", *pairs)]
 
 
+def list_genres(client):
+    return [a["genre"] for a in client.list("genre")]
+
+
 def simplify_title_list(titles):
     return [
         {
@@ -87,7 +91,7 @@ def list_titles(client, query):
         titles = client.listplaylistinfo(query["playlist"])
 
     else:
-        pairs = info_pairs(query, ("artist", "albumartist", "album"))
+        pairs = info_pairs(query, ("artist", "albumartist", "album", "genre"))
         if pairs:
             titles = client.find(*pairs)
         else:
