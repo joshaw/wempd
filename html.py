@@ -17,12 +17,12 @@ def html_link(text, href, root=False, folder=True, anchor=None):
 
 
 def html_form_link(href, data, text):
-    data = json.dumps(data)
+    data = json.dumps(data).replace('"', "&quot;")
     return "\n".join(
         [
-            f"<form method='post' action='{href}'>",
-            f"<input type='hidden' name='data' value='{data}' />",
-            f"<input type='submit' value='{text}' />",
+            f'<form method="post" action="{href}">',
+            f'<input type="hidden" name="data" value="{data}" />',
+            f'<input type="submit" value="{text}" />',
             "</form>",
         ]
     )
@@ -302,7 +302,6 @@ def handle_get(client, path, query):
             for song in client.search("any", query):
                 artist_type = "albumartists" if "albumartist" in song else "artists"
                 href = (
-                    "..",
                     artist_type,
                     song.get("albumartist", song.get("artist")),
                     song["album"],
