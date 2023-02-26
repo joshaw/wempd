@@ -234,6 +234,7 @@ input[type=radio] + label:last-of-type {
 
 #song_info { flex-grow: 1; }
 #song_info table td:nth-child(1) { font-weight: bold; }
+#song_info table td:nth-child(2) { word-break: break-all; }
 
 #cur_song_progress_wrapper { grid-area: progress; }
 #cur_song_progress_wrapper span { margin-top: 2px; }
@@ -284,7 +285,7 @@ input[type=radio] + label:last-of-type {
 	overflow-y: scroll;
 }
 
-#queue { width: 100%; }
+#queue { width: 100%; word-break: break-word; }
 #queue tr td:last-child span { visibility: hidden; }
 #queue tr:hover td:last-child span { visibility: initial; }
 
