@@ -531,6 +531,14 @@ input[type=radio] + label:last-of-type {
 			<input type="text" id="search_input" name="query" size="12"/>
 			<button id="search_submit" type="submit">Search</button>
 		</form>
+
+		<div class="hflex" id="song_controls">
+			Vol:
+			<input type="range" id="volume_slider" step="1" min="0" max="100" title="Volume"></input>
+			<span id="volume_label"></span>
+			<button id="volume_down" title="Volume down"></button>
+			<button id="volume_up" title="Volume up"></button>
+		</div>
 	</div>
 
 	<div id="cur_song_progress_wrapper" class="hflex">
@@ -556,16 +564,6 @@ input[type=radio] + label:last-of-type {
 				<tr><td>Album: </td><td id="cur_album"></td></tr>
 				<tr><td>Artist: </td><td id="cur_artist"></td></tr>
 			</table>
-		</div>
-
-		<div id="song_controls">
-			<div class="hflex">
-				Vol:
-				<input type="range" id="volume_slider" step="1" min="0" max="100" title="Volume"></input>
-				<span id="volume_label"></span>
-				<button id="volume_down" title="Volume down"></button>
-				<button id="volume_up" title="Volume up"></button>
-			</div>
 		</div>
 	</div>
 
