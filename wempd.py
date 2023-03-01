@@ -49,7 +49,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             resp = resp[0]
 
         if code is None or code == 200:
-            lines = '\n'.join(html.get_header(self.client) + resp)
+            lines = "\n".join(html.get_header(self.client) + resp)
             self.send_headers(content_type="text/html", code=code)
             self.wfile.write(lines.encode("utf-8"))
         elif code == 301:
@@ -57,10 +57,16 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Location", resp)
             self.end_headers()
 
-    def send_headers(self, content_type="text/html", code=200, content_length=None, location=None):
+    def send_headers(
+        self,
+        content_type="text/html",
+        code=200,
+        content_length=None,
+        cache_control="no-store",
+    ):
         self.send_response(code)
         self.send_header("Content-Type", content_type)
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache_control)
         if content_length is not None:
             self.send_header("Content-Length", content_length)
         self.end_headers()
@@ -88,6 +94,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_headers(
                     content_type=pic.get("type", "image/jpg"),
                     content_length=len(binary),
+                    cache_control="max-age=31536000, immutable",
                     code=200,
                 )
                 self.wfile.write(binary)
@@ -142,8 +149,6 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/titles":
             self.return_json(list_titles(self.client, query))
-
-
 
     def do_GET(self):
         MPDRequestHandler.client = init_client(self.client)

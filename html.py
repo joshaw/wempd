@@ -192,11 +192,9 @@ def song_info_table(client, song_info):
         thelist.append("<br/>")
     thelist.append("</p>")
 
-    image = client.readpicture(song_info["file"])
-    if image:
-        import base64
-        image = base64.b64encode(image["binary"]).decode("utf-8")
-        thelist.append(f'<img style="max-width: 100%" src="data:image/png;base64,{image}"/>')
+    image_url = "/mpd/api/art?" + urlencode({"file": song_info['file']})
+    thelist.append(f"<p><a href={image_url}>Album art</a></p>")
+    #thelist.append(f'<img loading="lazy" style="max-width: 100%" src="{image_url}"/>')
     return thelist
 
 
@@ -246,6 +244,9 @@ def url_status(client, path, query):
     volume = status.get("volume", "unknown")
     return [
         f"<h1>Status</h1>",
+        "<p>",
+        html_link("Current Song", ("queue", "0"), folder=False),
+        "</p>",
         "<table>",
         f"<tr><td>Volume:</td><td>{volume}</td><td>",
         html_form_link("/mpd/api/volume", {"volume": -10}, "-10"),
@@ -314,13 +315,7 @@ def url_queue(client, path, query):
 
 def url_queue_item(client, path, query, item):
     song_info = client.playlistinfo(int(item))[0]
-    header = " / ".join(
-        [
-            html_link("Queue", "."),
-            item,
-        ]
-    )
-
+    header = " / ".join([html_link("Queue", "."), item])
     return (
         [f"<h1>{header}</h1>"]
         + [
