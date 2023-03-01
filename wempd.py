@@ -41,12 +41,23 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         print(f"Error: {msg}")
         self.return_json({"error": msg}, code=400)
 
-    def return_html(self, lines, code=200):
-        self.send_headers(content_type="text/html", code=code)
-        header = html.get_header(self.client)
-        self.wfile.write("\n".join(header + lines).encode("utf-8"))
+    def handle_html_get(self, path, query):
+        resp = html.handle_get(self.client, path, query)
+        code = 200
+        if isinstance(resp, tuple):
+            code = resp[1]
+            resp = resp[0]
 
-    def send_headers(self, content_type="text/html", code=200, content_length=None):
+        if code is None or code == 200:
+            lines = '\n'.join(html.get_header(self.client) + resp)
+            self.send_headers(content_type="text/html", code=code)
+            self.wfile.write(lines.encode("utf-8"))
+        elif code == 301:
+            self.send_response(code)
+            self.send_header("Location", resp)
+            self.end_headers()
+
+    def send_headers(self, content_type="text/html", code=200, content_length=None, location=None):
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", "no-store")
@@ -165,7 +176,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         if path.startswith("/api/"):
             self.handle_get_api(path, query)
         else:
-            self.return_html(html.handle_get(self.client, path, query))
+            self.handle_html_get(path, query)
 
     def do_POST(self):
         MPDRequestHandler.client = init_client(self.client)
