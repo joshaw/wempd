@@ -54,9 +54,10 @@ def get_header(client):
             vertical-align: text-top;
         }
         #current {
-            border-left: solid 2px;
+            border-left: solid 1px;
             padding-left: 0.5em;
             font-weight: bold;
+            background: #f0f0f0;
         }
         .hscroll {
             white-space: nowrap;
@@ -191,9 +192,8 @@ def song_info_table(client, song_info):
         thelist.append("<br/>")
     thelist.append("</p>")
 
-    image_url = "/mpd/api/art?" + urlencode({"file": song_info['file']})
+    image_url = "/mpd/api/art?" + urlencode({"file": song_info["file"]})
     thelist.append(f"<p><a href={image_url}>Album art</a></p>")
-    #thelist.append(f'<img loading="lazy" style="max-width: 100%" src="{image_url}"/>')
     return thelist
 
 
@@ -561,7 +561,8 @@ matcher = {
     "/albums/([^/]+)/([^/]+)": url_albums_album_track,
     "/genres": url_add_trailing_slash,
     "/genres/": url_genres,
-    "/genre/([^/]*)": url_genres_genre,
+    "/genres/([^/]*)": url_genres_genre,
+    "/genres/([^/]*)/": url_remove_trailing_slash,
 }
 
 
