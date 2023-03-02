@@ -5,14 +5,14 @@ from urllib.parse import quote_plus, unquote_plus, urlencode
 import api
 
 
-def html_link(text, href, root=False, folder=True, anchor=None):
+def html_link(text, href, root=False, folder=True):
     if isinstance(href, str):
         href = (href,)
     if href[0].startswith("http://") or href[0].startswith("https://"):
         href = href[0]
     else:
         href = "/".join((quote_plus(h) for h in href))
-        href = f"{'/' if root else ''}{href}{'/' if folder else ''}{'#' + anchor if anchor else ''}"
+        href = f"{'/' if root else ''}{href}{'/' if folder else ''}"
     return f"<a href='{href}'>{text}</a>"
 
 
@@ -99,9 +99,7 @@ def get_header(client):
         " | ".join(
             [
                 html_link("Status", ("mpd", "status"), root=True, folder=False),
-                html_link(
-                    "Queue", ("mpd", "queue"), anchor="current", root=True, folder=False
-                ),
+                html_link( "Queue", ("mpd", "queue"), root=True, folder=False),
                 html_link("AlbumArtists", ("mpd", "albumartists"), root=True),
                 html_link("Artists", ("mpd", "artists"), root=True),
                 html_link("Albums", ("mpd", "albums"), root=True),
@@ -244,9 +242,6 @@ def url_status(client, path, query):
     volume = status.get("volume", "unknown")
     return [
         f"<h1>Status</h1>",
-        "<p>",
-        html_link("Current Song", ("queue", "0"), folder=False),
-        "</p>",
         "<table>",
         f"<tr><td>Volume:</td><td>{volume}</td><td>",
         html_form_link("/mpd/api/volume", {"volume": -10}, "-10"),
@@ -491,7 +486,7 @@ def url_genres(client, path, query):
         {},
         [
             "<ul>",
-            *["<li>" + html_link(a, a) + "</li>" for a in api.list_genres(client)],
+            *["<li>" + html_link(a, a, folder=False) + "</li>" for a in api.list_genres(client)],
             "</ul>",
         ],
     )
