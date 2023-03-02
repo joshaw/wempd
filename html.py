@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from urllib.parse import quote_plus, unquote_plus, urlencode
 
 import api
@@ -223,6 +224,10 @@ def fmt_secs(s):
     )
 
 
+def fmt_date(ts):
+    return time.strftime("%c", time.localtime(ts))
+
+
 def url_status(client, path, query):
     status = client.status()
 
@@ -266,7 +271,7 @@ def url_status(client, path, query):
         f"<tr><td># Songs:</td><td>{int(stats['songs']):,.0f}</td></tr>",
         "<tr><td>&nbsp;</td></tr>",
         f"<tr><td>DB Play time:</td><td>{fmt_secs(int(stats['db_playtime']))}</td></tr>",
-        f"<tr><td>DB updated:</td><td>{stats['db_update']}</td></tr>",
+        f"<tr><td>DB updated:</td><td>{fmt_date(int(stats['db_update']))}</td></tr>",
         "</table>",
     ]
 
