@@ -13,7 +13,7 @@ def html_link(text, href, root=False, folder=True):
         href = href[0]
     else:
         href = "/".join((quote_plus(h) for h in href))
-        href = f"{'/' if root else ''}{href}{'/' if folder else ''}"
+        href = f"{'/' if root else './'}{href}{'/' if folder else ''}"
     return f"<a href='{href}'>{text}</a>"
 
 
@@ -101,12 +101,14 @@ def get_header(client):
         " | ".join(
             [
                 html_link("Status", ("mpd", "status"), root=True, folder=False),
-                html_link( "Queue", ("mpd", "queue"), root=True, folder=False),
+                html_link("Queue", ("mpd", "queue"), root=True, folder=False),
                 html_link("AlbumArtists", ("mpd", "albumartists"), root=True),
                 html_link("Artists", ("mpd", "artists"), root=True),
                 html_link("Albums", ("mpd", "albums"), root=True),
-                html_link("Genres", ("mpd", "genres"), root=True),
                 html_link("Playlists", ("mpd", "playlists"), root=True),
+                html_link("Genres", ("mpd", "genres"), root=True),
+                html_link("Dates", ("mpd", "dates"), root=True),
+                html_link("Labels", ("mpd", "labels"), root=True),
             ]
         ),
         "</div>",
@@ -156,7 +158,17 @@ def song_info_table(client, song_info):
                 root=True,
                 folder=False,
             )
+        elif key == "genre":
+            key = "Genre"
+            href = ("mpd", "genres", value)
+        elif key == "date":
+            key = "Date"
+            href = ("mpd", "dates", value)
+        elif key == "label":
+            key = "Label"
+            href = ("mpd", "labels", value)
         elif key == "duration":
+            key = "Duration"
             value = f"{int(float(value)/60)}:{int(float(value)%60)} ({value})"
         elif key == "musicbrainz_albumartistid":
             key = None
@@ -248,6 +260,7 @@ def url_status(client, path, query):
     return [
         f"<h1>Status</h1>",
         "<table>",
+        f"<tr><td>State:</td><td>{status['state']}</td></tr>",
         f"<tr><td>Volume:</td><td>{volume}</td><td>",
         html_form_link("/mpd/api/volume", {"volume": -10}, "-10"),
         html_form_link("/mpd/api/volume", {"volume": -5}, "-5"),
@@ -355,7 +368,7 @@ def url_search(client, path, query):
 def url_playlists(client, path, query):
     return create_list_page(
         "Playlists",
-        {},
+        None,
         [
             "<ul>",
             *["<li>" + html_link(a, a) + "</li>" for a in api.list_playlists(client)],
@@ -384,7 +397,7 @@ def url_artists(client, path, query, style):
     list_func = api.list_albumartists if style == "album" else api.list_artists
     return create_list_page(
         artist_type.title(),
-        {},
+        None,
         [
             "<ul>",
             *["<li>" + html_link(a, a) + "</li>" for a in list_func(client)],
@@ -488,10 +501,13 @@ def url_albums_album_track(client, path, query, album, title):
 def url_genres(client, path, query):
     return create_list_page(
         "Genres",
-        {},
+        None,
         [
             "<ul>",
-            *["<li>" + html_link(a, a, folder=False) + "</li>" for a in api.list_genres(client)],
+            *[
+                "<li>" + html_link("None" if a == "" else a, a) + "</li>"
+                for a in api.list_genres(client)
+            ],
             "</ul>",
         ],
     )
@@ -500,6 +516,78 @@ def url_genres(client, path, query):
 def url_genres_genre(client, path, query, genre):
     header = " / ".join([html_link("Genres", ".."), genre])
     data = {"genre": genre}
+    thelist = [
+        "<ul>",
+        *[
+            f"<li>{a['artist']} - {a['album']} - "
+            + html_link(
+                a["title"],
+                ("mpd", "artists", a["artist"], a["album"], a["title"]),
+                root=True,
+                folder=False,
+            )
+            + "</li>"
+            for a in api.list_titles(client, data)
+        ],
+        "</ul>",
+    ]
+    return create_list_page(header, data, thelist)
+
+
+def url_dates(client, path, query):
+    return create_list_page(
+        "Dates",
+        None,
+        [
+            "<ul>",
+            *[
+                "<li>" + html_link("None" if a == "" else a, a) + "</li>"
+                for a in api.list_dates(client)
+            ],
+            "</ul>",
+        ],
+    )
+
+
+def url_dates_date(client, path, query, date):
+    header = " / ".join([html_link("Dates", ".."), date])
+    data = {"date": date}
+    thelist = [
+        "<ul>",
+        *[
+            f"<li>{a['artist']} - {a['album']} - "
+            + html_link(
+                a["title"],
+                ("mpd", "artists", a["artist"], a["album"], a["title"]),
+                root=True,
+                folder=False,
+            )
+            + "</li>"
+            for a in api.list_titles(client, data)
+        ],
+        "</ul>",
+    ]
+    return create_list_page(header, data, thelist)
+
+
+def url_labels(client, path, query):
+    return create_list_page(
+        "Labels",
+        None,
+        [
+            "<ul>",
+            *[
+                "<li>" + html_link("None" if a == "" else a, a) + "</li>"
+                for a in api.list_labels(client)
+            ],
+            "</ul>",
+        ],
+    )
+
+
+def url_labels_label(client, path, query, label):
+    header = " / ".join([html_link("Labels", ".."), label])
+    data = {"label": label}
     thelist = [
         "<ul>",
         *[
@@ -561,16 +649,27 @@ matcher = {
     "/albums/([^/]+)/([^/]+)": url_albums_album_track,
     "/genres": url_add_trailing_slash,
     "/genres/": url_genres,
-    "/genres/([^/]*)": url_genres_genre,
-    "/genres/([^/]*)/": url_remove_trailing_slash,
+    "/genres/([^/]*)": url_add_trailing_slash,
+    "/genres/([^/]*)/": url_genres_genre,
+    "/dates": url_add_trailing_slash,
+    "/dates/": url_dates,
+    "/dates/([^/]*)/": url_dates_date,
+    "/labels": url_add_trailing_slash,
+    "/labels/": url_labels,
+    "/labels/([^/]*)/": url_labels_label,
 }
 
 
 def handle_get(client, path, query):
-    path = unquote_plus(path)
     page = None
     for pattern, func in matcher.items():
         matches = re.fullmatch(pattern, path)
         if matches:
-            return func(client, path, query, *matches.groups())
+            return func(
+                client,
+                unquote_plus(path),
+                query,
+                *(unquote_plus(g) for g in matches.groups()),
+            )
+
     return ["<h1>Page not found</h1>", f"<p>{path}</p>"]
