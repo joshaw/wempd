@@ -103,12 +103,8 @@ def get_header(client):
                 html_link("Status", ("mpd", "status"), root=True, folder=False),
                 html_link("Queue", ("mpd", "queue"), root=True, folder=False),
                 html_link("AlbumArtists", ("mpd", "albumartists"), root=True),
-                html_link("Artists", ("mpd", "artists"), root=True),
                 html_link("Albums", ("mpd", "albums"), root=True),
                 html_link("Playlists", ("mpd", "playlists"), root=True),
-                html_link("Genres", ("mpd", "genres"), root=True),
-                html_link("Dates", ("mpd", "dates"), root=True),
-                html_link("Labels", ("mpd", "labels"), root=True),
             ]
         ),
         "</div>",
@@ -146,18 +142,21 @@ def song_info_table(client, song_info):
             href = ("mpd", "albums", value)
         elif key == "title":
             key = "Title"
-            value = html_link(
-                value,
-                (
-                    "mpd",
-                    "albumartists" if "albumartist" in song_info else "artist",
-                    song_info.get("albumartist", song_info["artist"]),
-                    song_info["album"],
+            if (
+                "albumartist" in song_info or "artist" in song_info
+            ) and "album" in song_info:
+                value = html_link(
                     value,
-                ),
-                root=True,
-                folder=False,
-            )
+                    (
+                        "mpd",
+                        "albumartists" if "albumartist" in song_info else "artist",
+                        song_info.get("albumartist", song_info.get("artist", "")),
+                        song_info.get("album", ""),
+                        value,
+                    ),
+                    root=True,
+                    folder=False,
+                )
         elif key == "genre":
             key = "Genre"
             href = ("mpd", "genres", value)
@@ -286,6 +285,16 @@ def url_status(client, path, query):
         f"<tr><td>DB Play time:</td><td>{fmt_secs(int(stats['db_playtime']))}</td></tr>",
         f"<tr><td>DB updated:</td><td>{fmt_date(int(stats['db_update']))}</td></tr>",
         "</table>",
+        "<p><b>Modes:</b> ",
+        " | ".join(
+            [
+                html_link("Artists", ("mpd", "artists"), root=True),
+                html_link("Genres", ("mpd", "genres"), root=True),
+                html_link("Dates", ("mpd", "dates"), root=True),
+                html_link("Labels", ("mpd", "labels"), root=True),
+            ]
+        ),
+        "</p>",
     ]
 
 
@@ -551,7 +560,7 @@ def url_dates(client, path, query):
 
 def url_dates_date(client, path, query, date):
     header = " / ".join([html_link("Dates", ".."), date])
-    data = {"date": date}
+    data = {"originaldate": date}
     thelist = [
         "<ul>",
         *[
