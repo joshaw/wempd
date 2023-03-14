@@ -4,8 +4,9 @@ After=network.target
 
 [Service]
 SyslogIdentifier=wempd
+Environment="WEMPD_LISTEN_ADDRESS=127.0.0.1"
 ExecStart=/usr/bin/python3 -u wempd.py
-WorkingDirectory=/home/josh/wempd
+WorkingDirectory=/home/josh/repos/wempd
 Restart=on-failure
 
 [Install]
