@@ -507,6 +507,9 @@ def url_albums_album_track(client, path, query, album, title):
 
 
 def url_genres(client, path, query):
+    genres = [a["genre"].split("/") for a in client.list("genre")]
+    genres = set(genre for genre_list in genres for genre in genre_list)
+    genres = sorted([g.strip() for g in genres])
     return create_list_page(
         "Genres",
         None,
@@ -514,7 +517,7 @@ def url_genres(client, path, query):
             "<ul>",
             *[
                 "<li>" + html_link("None" if a == "" else a, a) + "</li>"
-                for a in api.list_genres(client)
+                for a in genres
             ],
             "</ul>",
         ],
@@ -523,7 +526,7 @@ def url_genres(client, path, query):
 
 def url_genres_genre(client, path, query, genre):
     header = " / ".join([html_link("Genres", ".."), genre])
-    data = {"genre": genre}
+    query = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
     thelist = [
         "<ul>",
         *[
@@ -535,11 +538,11 @@ def url_genres_genre(client, path, query, genre):
                 folder=False,
             )
             + "</li>"
-            for a in api.list_titles(client, data)
+            for a in client.find(*query)
         ],
         "</ul>",
     ]
-    return create_list_page(header, data, thelist)
+    return create_list_page(header, {"genre": genre}, thelist)
 
 
 def url_dates(client, path, query):
