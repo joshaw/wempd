@@ -546,6 +546,7 @@ def url_genres_genre(client, path, query, genre):
 
 
 def url_dates(client, path, query):
+    dates = [a["originaldate"] for a in client.list("originaldate")]
     return create_list_page(
         "Dates",
         None,
@@ -553,7 +554,7 @@ def url_dates(client, path, query):
             "<ul>",
             *[
                 "<li>" + html_link("None" if a == "" else a, a) + "</li>"
-                for a in api.list_dates(client)
+                for a in dates
             ],
             "</ul>",
         ],
@@ -582,6 +583,7 @@ def url_dates_date(client, path, query, date):
 
 
 def url_labels(client, path, query):
+    labels = [a["label"] for a in client.list("label")]
     return create_list_page(
         "Labels",
         None,
@@ -589,7 +591,7 @@ def url_labels(client, path, query):
             "<ul>",
             *[
                 "<li>" + html_link("None" if a == "" else a, a) + "</li>"
-                for a in api.list_labels(client)
+                for a in labels
             ],
             "</ul>",
         ],

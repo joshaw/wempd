@@ -67,18 +67,6 @@ def list_albums(client, query):
     return [a["album"] for a in client.list("album", *pairs)]
 
 
-def list_genres(client):
-    return [a["genre"] for a in client.list("genre")]
-
-
-def list_dates(client):
-    return [a["originaldate"] for a in client.list("originaldate")]
-
-
-def list_labels(client):
-    return [a["label"] for a in client.list("label")]
-
-
 def simplify_title_list(titles):
     return [
         {
