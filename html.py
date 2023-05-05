@@ -419,7 +419,7 @@ def url_artists_artist(client, path, query, style, artist):
     data = {"artist": artist}
     thelist = [
         "<ul>",
-        "<li>" + html_link("All", "tracks") + "</li>",
+        "<li>" + html_link("All", "_all") + "</li>",
         *[
             "<li>" + html_link(a, a) + "</li>"
             for a in api.list_albums(client, {artist_type: artist})
@@ -431,12 +431,12 @@ def url_artists_artist(client, path, query, style, artist):
 
 def url_artists_artist_album(client, path, query, style, artist, album):
     artist_type = f"{style}artist"
-    all_tracks = album == "tracks"
+    all_tracks = album == "_all"
     header = " / ".join(
         [
             html_link(artist_type.title(), ("..", "..")),
             html_link(artist, ".."),
-            album,
+            "All tracks" if all_tracks else album,
         ]
     )
     data = {
@@ -456,17 +456,18 @@ def url_artists_artist_album(client, path, query, style, artist, album):
 
 def url_artists_artist_album_track(client, path, query, style, artist, album, title):
     artist_type = f"{style}artist"
+    all_tracks = album == "_all"
     header = " / ".join(
         [
             html_link(artist_type.title(), ("..", "..")),
             html_link(artist, ".."),
-            html_link(album, "."),
+            html_link("All tracks" if all_tracks else album, "."),
             title,
         ]
     )
     data = {
         artist_type: artist,
-        "album": None if album == "tracks" else album,
+        "album": None if all_tracks else album,
         "title": title,
     }
     return create_song_page(client, header, data)
