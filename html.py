@@ -261,12 +261,10 @@ def url_status(client, path, query):
         "<table>",
         f"<tr><td>State:</td><td>{status['state']}</td></tr>",
         f"<tr><td>Volume:</td><td>{volume}</td><td>",
-        html_form_link("/mpd/api/volume", {"volume": -10}, "-10"),
-        html_form_link("/mpd/api/volume", {"volume": -5}, "-5"),
-        html_form_link("/mpd/api/volume", {"volume": -1}, "-1"),
-        html_form_link("/mpd/api/volume", {"volume": +1}, "+1"),
-        html_form_link("/mpd/api/volume", {"volume": +5}, "+5"),
-        html_form_link("/mpd/api/volume", {"volume": +10}, "+10"),
+        *[
+            html_form_link("/mpd/api/volume", {"volume": c}, f"{c:+}")
+            for c in (-10, -5, -1, 1, 5, 10)
+        ],
         "</td></tr>",
         *gen_mode_button("repeat"),
         *gen_mode_button("random"),
