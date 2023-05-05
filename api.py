@@ -1,7 +1,7 @@
 import mpd
 import os
 
-def init_client(client, hostname="localhost", port=6600):
+def init_client(client):
     if client:
         try:
             client.status()
@@ -9,7 +9,7 @@ def init_client(client, hostname="localhost", port=6600):
         except mpd.base.ConnectionError:
             pass
 
-    hostname = os.getenv("WEMPD_MPD_HOSTNAME", "localhost")
+    hostname = os.getenv("WEMPD_MPD_HOST", "localhost")
     port = int(os.getenv("WEMPD_MPD_PORT", "6600"))
 
     client = mpd.MPDClient()
