@@ -4,7 +4,7 @@ import os
 def init_client(client):
     if client:
         try:
-            client.status()
+            client.ping()
             return client
         except mpd.base.ConnectionError:
             pass

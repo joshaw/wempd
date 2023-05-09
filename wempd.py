@@ -42,33 +42,28 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         self.return_json({"error": msg}, code=400)
 
     def handle_html_get(self, path, query):
-        resp = html.handle_get(self.client, path, query)
-        code = 200
-        if isinstance(resp, tuple):
-            code = resp[1]
-            resp = resp[0]
-
-        if code is None or code == 200:
-            lines = "\n".join(html.get_header(self.client) + resp)
-            self.send_headers(content_type="text/html", code=code)
-            self.wfile.write(lines.encode("utf-8"))
-        elif code == 301:
-            self.send_response(code)
-            self.send_header("Location", resp)
-            self.end_headers()
+        resp, headers = html.handle_get(self.client, path, query)
+        self.send_headers(**headers)
+        self.wfile.write("\n".join(resp).encode("utf-8"))
 
     def send_headers(
         self,
-        content_type="text/html",
+        cache_control="no-store",
         code=200,
         content_length=None,
-        cache_control="no-store",
+        content_type="text/html",
+        location=None,
+        refresh=None,
     ):
         self.send_response(code)
         self.send_header("Content-Type", content_type)
         self.send_header("Cache-Control", cache_control)
+        if location is not None:
+            self.send_header("Location", location)
         if content_length is not None:
             self.send_header("Content-Length", content_length)
+        if refresh is not None:
+            self.send_header("Refresh", refresh)
         self.end_headers()
 
     def handle_get_api(self, path, query):
