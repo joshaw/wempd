@@ -510,10 +510,11 @@ def url_artists_artist_album_track(style, artist, album, file, *, client, path, 
 
 
 def url_albums(*, client, path, query):
+    albums = [a["album"] for a in client.list("album")]
     return create_list_page(
         "Albums " + html_link("<span title='random'>↝</span>", "_random"),
         {},
-        ["<li>" + html_link(a, a) + "</li>" for a in api.list_albums(client, {})],
+        ["<li>" + html_link(a, a) + "</li>" for a in albums]
     )
 
 
