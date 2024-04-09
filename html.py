@@ -284,6 +284,7 @@ def url_status(*, client, path, query):
         refresh = {"refresh": int(remaining + 1)}
 
     volume = status.get("volume", "unknown")
+    outputs = client.outputs()
     return [
         "<h2>Current Song</h2>",
         *song_info_table(client.currentsong(), minimal=True),
@@ -313,6 +314,16 @@ def url_status(*, client, path, query):
         "</p>",
         "<p><b>Library:</b>",
         html_link("stats", "stats", folder=False),
+        "</p>",
+        "<p><b>Outputs:</b>",
+        " ".join(
+            [
+                f"[{output['outputname']}]"
+                if output["outputenabled"] == "1"
+                else output["outputname"]
+                for output in outputs
+            ]
+        ),
         "</p>",
     ], refresh
 
