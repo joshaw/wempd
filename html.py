@@ -468,9 +468,8 @@ def url_artists(style, *, client, path, query):
 
 def url_artists_artist(style, artist, *, client, path, query):
     artist_type = f"{style}artist"
-    is_random = False
-    if artist == "_random":
-        is_random = True
+    is_random = artist == "_random"
+    if is_random:
         artist = random.choice(client.list(artist_type))[artist_type]
 
     return create_list_page(
@@ -528,12 +527,13 @@ def url_albums(*, client, path, query):
     return create_list_page(
         "Albums " + html_link("<span title='random'>↝</span>", "_random"),
         {},
-        ["<li>" + html_link(a, a) + "</li>" for a in albums]
+        ["<li>" + html_link(a, a) + "</li>" for a in albums],
     )
 
 
 def url_albums_album(album, *, client, path, query):
-    if album == "_random":
+    is_random = album == "_random"
+    if is_random:
         album = random.choice(client.list("album"))["album"]
 
     data = {"album": album}
@@ -542,6 +542,7 @@ def url_albums_album(album, *, client, path, query):
         data,
         [
             f"<li value='{a['track']}'>"
+            + (f"{a['artist']} - " if is_random else "")
             + html_link(a["title"], a["file"], folder=False)
             + "</li>"
             for a in api.list_titles(client, data)
