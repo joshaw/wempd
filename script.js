@@ -1421,12 +1421,24 @@ function check_db_update(info) {
 	}
 }
 
+function auto_populate(queue) {
+	if (window.auto_populate_enabled && queue.length < 3) {
+		fetch_json('albums')
+			.then(albums => albums[Math.floor(Math.random() * albums.length)])
+			.then(album => {
+				append_to_queue({'album': album});
+				console.log('Auto populate playlist', album);
+			});
+	}
+}
+
 function refresh() {
 	return fetch_json('status')
 		.then((info) => {
 			populate_queue(info.queue);
 			populate_song_info(info);
 			check_db_update(info);
+			auto_populate(info.queue);
 			return info;
 		});
 }
