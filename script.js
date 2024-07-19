@@ -33,7 +33,7 @@ function isArray(a) {
 	return Object.prototype.toString.call(a) === "[object Array]";
 }
 
-function strftime(sFormat, date=new Date()) {
+function strftime(sFormat, date) {
 	// https://github.com/thdoan/strftime
 	const nDay = date.getDay();
 	const nDate = date.getDate();
@@ -100,18 +100,12 @@ function format_secs(orig_duration) {
 }
 
 function url_with_params(url, params = {}) {
-	if (!params || Object.keys(params).length === 0) {
+	if (!params || Object.keys(params).length === 0)
 		return url;
-	}
-
-	const kv = [];
-	for (const key in params) {
-		const value = params[key];
-		if (value !== null && value !== undefined) {
-			kv.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
-		}
-	}
-	return url + '?' + kv.join('&');
+	return url + '?' + Object.entries(params)
+		.filter(([k, v]) => v)
+		.map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+		.join('&');
 }
 
 function wait(ms) {
@@ -172,35 +166,36 @@ function post_json(url, data) {
 }
 
 // Element functions //////////////////////////////////////////////////////////
-function remove_children(el) {
-	while (el.lastChild) {
-		el.removeChild(el.lastChild);
-	}
-}
+function E(tag, attributes, children) {
+	const elem = document.createElement(tag)
 
-function make(desc) {
-	if (!isArray(desc)) { throw new Error(); }
-
-	const [name, attributes] = desc;
-	const el = document.createElement(name);
-
-	let start = 1;
-	if (typeof attributes === "object" && attributes !== null && !isArray(attributes)) {
-		for (const attr in attributes) {
-			el[attr] = attributes[attr];
-		}
-		start = 2;
+	if (children === undefined && attributes?.constructor !== Object) {
+		children = attributes
+		attributes = null
 	}
 
-	for (let i = start; i < desc.length; i++) {
-		if (isArray(desc[i])) {
-			el.appendChild(make(desc[i]));
+	for (const key in attributes || {}) {
+		const value = attributes[key]
+		if (value === null || value === undefined)
+			continue
+
+		if (key.startsWith("on")) {
+			elem.addEventListener(key.slice(2), value, false)
+		} else if (typeof value === "boolean") {
+			if (value) elem.setAttribute(key, "")
 		} else {
-			el.appendChild(document.createTextNode(desc[i]));
+			elem.setAttribute(key, value);
 		}
 	}
 
-	return el;
+	if (children == null || children == undefined) {
+		//
+	} else if (children instanceof Array) {
+		elem.append(...children.filter(x => x !== undefined && x !== null))
+	} else {
+		elem.append(children)
+	}
+	return elem
 }
 
 function parseHTML(html) {
@@ -210,23 +205,9 @@ function parseHTML(html) {
 }
 
 function create_table_row(cells, is_header) {
-	const row = document.createElement('tr');
-	if (! cells) {
-		row.appendChild(parseHTML('<td>&nbsp;</td>'));
-		return row;
-	}
-
-	for (let i=0; i<cells.length; i++) {
-		const td = document.createElement(is_header ? 'th' : 'td');
-		const cell = cells[i] || '';
-		if (typeof(cell) === 'string') {
-			td.textContent = cell;
-		} else {
-			td.appendChild(cell);
-		}
-		row.appendChild(td);
-	}
-	return row;
+	if (! cells)
+		return E('tr', parseHTML('<td>&nbsp;</td>'));
+	return E('tr', cells.map(c => E(is_header ? 'th' : 'td', c || '')));
 }
 
 function highlight(what) {
@@ -260,14 +241,7 @@ function show_error(msg) {
 
 function draw_context_menu(x, y, items) {
 	const cmenu = document.getElementById('context_menu');
-	remove_children(cmenu);
-	for (let i=0; i<items.length; i++) {
-		const item = items[i];
-		const item_p = document.createElement('p');
-		item_p.textContent = item.title;
-		item_p.addEventListener('click', item.command);
-		cmenu.appendChild(item_p);
-	}
+	cmenu.replaceChildren(...items.map(item => E('p', {onclick: item.command}, item.title)));
 
 	cmenu.style.display = 'initial';
 	cmenu.style.left = x + 'px';
@@ -289,16 +263,11 @@ function draw_context_menu(x, y, items) {
 function hide_context_menu() {
 	const cmenu = document.getElementById('context_menu');
 	cmenu.style.display = 'none';
-	remove_children(cmenu);
+	cmenu.replaceChildren();
 }
 
 function notify(content, icon) {
-	const new_p = document.createElement('p');
-	new_p.classList.add("hflex");
-	new_p.appendChild(parseHTML(icon));
-
-	const text = document.createTextNode(content);
-	new_p.appendChild(text);
+	const new_p = E('p', {class: "hflex"}, [parseHTML(icon), content])
 
 	const logger = document.getElementById('logger');
 	logger.insertBefore(new_p, logger.firstElementChild);
@@ -316,140 +285,79 @@ function notify(content, icon) {
 
 function display_modal(content) {
 	const modal = document.getElementById('modal');
-	remove_children(modal);
-
-	const div = parseHTML('<div class="modal_content"></div>');
-	div.appendChild(content);
-	modal.appendChild(div);
-
-	const close_modal_btn = parseHTML('<button class="close_button">&#x2A2F;</button>');
-	close_modal_btn.addEventListener('click', hide_modal);
-	modal.appendChild(close_modal_btn);
+	modal.replaceChildren(
+		E('div', {class: "modal_content"}, content),
+		E('button', {class: "close_button", onclick: hide_modal}, parseHTML('&#x2A2F')),
+	);
 	modal.style.display = 'flex';
 
 	document.getElementById('modal_background').style.display = 'initial';
 }
 
 function hide_modal(event) {
-	if (event && event.type === 'keyup' && event.key !== 'Escape') {
+	if (event?.type === 'keyup' && event?.key !== 'Escape')
 		return;
-	}
 
 	const modal = document.getElementById('modal');
 	modal.style.display = 'none';
-	remove_children(modal);
+	modal.replaceChildren();
 
 	document.getElementById('modal_background').style.display = 'none';
 }
 
 function get_info_panel(info) {
-	const info_table = document.createElement('table');
-	const explicit_rows = ['name', 'title', 'album', 'artist'];
+	const explicit_rows = [
+		['track', null],
+		['name', null],
+		['title', locate_title],
+		['album', locate_album],
+		['artist', locate_artist],
+		['albumartist', locate_albumartist],
+	];
 
-	if (info.artist !== info.albumartist) {
-		explicit_rows.push('albumartist');
-	}
-
-	if (info.track) {
-		info_table.appendChild(create_table_row(['Track', info.track || '']));
-	}
-
-	for (const key of explicit_rows) {
-		const value = info[key];
-		if (!value) { continue; }
-
-		let el = document.createElement('a');
-		el.href = '#';
-
-		switch (key) {
-			case 'title':
-				el.textContent = value;
-				el.addEventListener('click', () => locate_title(info));
-				break;
-			case 'album':
-				el.textContent = value;
-				el.addEventListener('click', () => locate_album(info));
-				break;
-			case 'artist':
-				el.textContent = value;
-				el.addEventListener('click', () => locate_artist(info));
-				break;
-			case 'albumartist':
-				el.textContent = value;
-				el.addEventListener('click', () => locate_albumartist(info));
-				break;
-			case 'name':
-				el = document.createTextNode(value);
-				break;
-			default:
-				break;
-		}
-
-		info_table.appendChild(create_table_row([sentenceCase(key), el]));
-	}
-
-	info_table.appendChild(create_table_row());
-
-	explicit_rows.push('track');
 	const mb_url = 'https://musicbrainz.org';
-	for (let key of Object.keys(info).sort()) {
-		if (explicit_rows.includes(key)) { continue; }
-
-		const value = info[key];
-		let el = value;
-
-		switch (key) {
-			case 'musicbrainz_artistid':
-				key = 'MusicBrainz Artist ID';
-				el = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
-				break;
-			case 'musicbrainz_albumartistid':
-				if (value === info['musicbrainz_artistid']) {
-					el = null;
-				} else {
-					key = 'MusicBrainz Album Artist ID';
-					el = make(['a', {href: `${mb_url}/artist/${value}`}, value]);
+	const info_table = E('table', [
+		...explicit_rows
+			.filter(([key, func]) => info[key])
+			.map(([key, func]) => create_table_row([
+				sentenceCase(key),
+				func ? E('a', {href: '#', onclick: () => func(info)}, info[key]) : info[key]
+			])),
+		create_table_row(),
+		...Object.entries(info)
+			.filter(([key, value]) => !explicit_rows.map(x => x[0]).includes(key))
+			.sort((a,b) => a[0].localeCompare(b[0]))
+			.map(([key, value]) => {
+				switch (key) {
+					case 'musicbrainz_artistid':
+						return ['MusicBrainz Artist ID', E('a', {href: `${mb_url}/artist/${value}`}, value)];
+					case 'musicbrainz_albumartistid':
+						return ['MusicBrainz Album Artist ID', E('a', {href: `${mb_url}/artist/${value}`}, value)];
+					case 'musicbrainz_albumid':
+						return ['MusicBrainz Album ID', E('a', {href: `${mb_url}/album/${value}`}, value)];
+					case 'musicbrainz_trackid':
+						return ['MusicBrainz Track ID', E('a', {href: `${mb_url}/recording/${value}`}, value)];
+					case 'musicbrainz_releasetrackid':
+						return ['MusicBrainz Release Track ID', E('a', {href: `${mb_url}/track/${value}`}, value)];
+					case 'duration':
+						return ['duration', `${format_secs(value)} (${value} secs)`];
+					case 'id':
+					case 'pos':
+					case 'time':
+						return [key, null]
+					default:
+						return [key, value];
 				}
-				break;
-			case 'musicbrainz_albumid':
-				key = 'MusicBrainz Album ID';
-				el = make(['a', {href: `${mb_url}/album/${value}`}, value]);
-				break;
-			case 'musicbrainz_trackid':
-				key = 'MusicBrainz Track ID';
-				el = make(['a', {href: `${mb_url}/recording/${value}`}, value]);
-				break;
-			case 'musicbrainz_releasetrackid':
-				key = 'MusicBrainz Release Track ID';
-				el = make(['a', {href: `${mb_url}/track/${value}`}, value]);
-				break;
-			case 'duration':
-				el = `${format_secs(value)} (${value} secs)`;
-				break
-			case 'id':
-			case 'pos':
-			case 'time':
-				el = null;
-				break
-			default:
-				break;
-		}
+			}).filter(([key, el]) => el).map(row => create_table_row(row)),
+	]);
 
-		if (el) {
-			info_table.appendChild(create_table_row([key, el]));
-		}
-	}
-
-	const albumart = document.getElementById('albumart').cloneNode();
 	if (window.currentsong.album === info.album && albumart) {
+		const albumart = document.getElementById('albumart').cloneNode();
 		albumart.style.float = 'left';
 		albumart.style.maxWidth = '300px';
 		albumart.style.paddingRight = '10px';
 
-		const div = document.createElement("div");
-		div.appendChild(albumart);
-		div.appendChild(info_table);
-		return div;
+		return E('div', {}, [albumart, info_table]);
 	}
 
 	return info_table;
@@ -460,138 +368,91 @@ function show_info_panel(info) {
 }
 
 function create_table(rows, opts={}) {
-	const tbl = document.createElement('table');
-	if (opts.id) {
-		tbl.id = opts.id;
-	}
-	for (const row of rows) {
-		tbl.appendChild(create_table_row(row));
-	}
-	return tbl;
+	return E('table', {id: opts.id}, E('tbody', rows.map(row => create_table_row(row))))
 }
 
 function get_and_show_stats(do_auto_refresh=true) {
 	return fetch_json('stats').then((stats) => {
-		const div = document.createElement('div');
-		div.appendChild(create_table([
-			['Artists', Number(stats.artists).toLocaleString()],
-			['Albums', Number(stats.albums).toLocaleString()],
-			['Songs', Number(stats.songs).toLocaleString()],
-		]));
-
-		div.appendChild(document.createElement('br'));
-
 		const updated_date = new Date(Number(stats.db_update)*1000);
 		const updated_date_str = strftime('%a %e %b %H:%M %Y', updated_date);
 		const update_ago = format_secs((new Date() - updated_date) / 1000) + ' ago';
 		const updating = stats.updating_db ? ` (Updating, #${stats.updating_db})`: '';
-		div.appendChild(create_table([
-			['Uptime', format_secs(stats.uptime)],
-			['Playtime', format_secs(stats.playtime)],
-			['DB Playtime', format_secs(stats.db_playtime)],
-			['DB Updated', `${updated_date_str} (${update_ago}) ${updating}`],
-		], {id: 'stats_table'}));
+		const db_updated = `${updated_date_str} (${update_ago}) ${updating}`
 
-		div.appendChild(document.createElement('br'));
+		display_modal(E('div', {}, [
+			create_table([
+				['Artists', Number(stats.artists).toLocaleString()],
+				['Albums', Number(stats.albums).toLocaleString()],
+				['Songs', Number(stats.songs).toLocaleString()],
+			]),
+			E('br'),
+			create_table([
+				['Uptime', format_secs(stats.uptime)],
+				['Playtime', format_secs(stats.playtime)],
+				['DB Playtime', format_secs(stats.db_playtime)],
+				['DB Updated', db_updated],
+			], {id: 'stats_table'}),
+			E('br'),
+			create_table([['Version', stats.mpd_version]]),
+			E('br'),
+			E('div', {class: 'btn_container'}, [
+				E('button', {onclick: () => get_and_show_stats(false)}, parseHTML(refresh_icon)),
+				E('button', {onclick: () => post_json('update').then(() => {
+					notify('Starting DB update', refresh_icon);
+					window.update_in_progress = true;
+					get_and_show_stats(false);
+				})}, 'Update DB'),
+				E('button', {
+					title: 'Show summary of songs',
+					onclick: () => get_and_show_summary(),
+				}, 'Summary'),
+			]),
+		]));
 
-		div.appendChild(create_table([['Version', stats.mpd_version]]));
-		div.appendChild(document.createElement('br'));
-
-		const buttons = document.createElement('div');
-		buttons.classList.add('btn_container');
-
-		const refresh_button = document.createElement('button');
-		refresh_button.innerHTML = refresh_icon;
-		refresh_button.addEventListener('click', () => get_and_show_stats(false));
-		buttons.appendChild(refresh_button);
-
-		const update_button = document.createElement('button');
-		update_button.textContent = 'Update DB';
-		update_button.addEventListener('click', () => {
-			post_json('update').then(() => {
-				notify('Starting DB update', refresh_icon);
-				window.update_in_progress = true;
-				get_and_show_stats(false);
-			});
-		});
-		buttons.appendChild(update_button);
-
-		const summary_btn = document.createElement('button');
-		summary_btn.textContent = 'Summary';
-		summary_btn.title = 'Show summary of songs';
-		summary_btn.addEventListener('click', () => get_and_show_summary());
-		buttons.appendChild(summary_btn);
-
-		div.appendChild(buttons);
-
-		display_modal(div);
-
-		if (do_auto_refresh) {
+		if (do_auto_refresh)
 			wait(2000).then(() => {
-				if (document.getElementById('stats_table')) {
+				if (document.getElementById('stats_table'))
 					get_and_show_stats();
-				}
 			});
-		}
 	});
 }
 
 function populate_song_info(all_status) {
 	const {currentsong, status} = all_status;
 
-	if (!currentsong || !status) { return; }
+	if (!currentsong || !status) return;
 
 	window.currentsong = currentsong;
 
-	const cur_title = currentsong.title;
-	const cur_name = currentsong.name;
-	const cur_file = currentsong.file;
-	const cur_album = currentsong.album;
-
-	const display_name = cur_title || cur_name || cur_file;
-
-	if (cur_title || cur_name || cur_file) {
-		document.title = `♫ ${display_name} - ${currentsong.artist || ''}`;
-	} else {
-		document.title = 'MPD';
-	}
+	const display_name = currentsong.title || currentsong.name || currentsong.file;
+	document.title = display_name ? `♫ ${display_name} - ${currentsong.artist || ''}` : 'MPD';
 
 	// Album Art
-	if (cur_file) {
-		if (window.cur_file !== cur_file) {
-			window.cur_file = cur_file;
-			fetch_blob('art', {file: cur_file})
+	if (currentsong.file) {
+		if (window.cur_file !== currentsong.file) {
+			window.cur_file = currentsong.file;
+			wait(100).then(() => fetch_blob('art', {file: currentsong.file})
 				.then((resp) => (resp.status === 200) ? resp.blob() : null)
-				.then(set_albumart);
+				.then(set_albumart));
 		}
 	} else {
 		set_albumart(null);
 	}
 
 	// Title
-	const cur_title_el = document.getElementById('cur_title');
-	remove_children(cur_title_el);
-	if (cur_title) {
-		cur_title_el.appendChild(make(['a', {href: '#', onclick: () => locate_title(currentsong)}, cur_title]));
-	} else if (cur_name || cur_file) {
-		cur_title_el.appendChild(document.createTextNode(cur_name || cur_file));
-	}
+	document.getElementById('cur_title').replaceChildren(currentsong.title
+		? E('a', {href: '#', onclick: () => locate_title(currentsong)}, currentsong.title)
+		: currentsong.name || currentsong.file
+	);
 
 	// Album
-	const cur_album_el = document.getElementById('cur_album');
-	remove_children(cur_album_el);
-	if (cur_album) {
-		cur_album_el.appendChild(make([
-			'a',
-			{href: '#', onclick: () => locate_album(currentsong)},
-			cur_album,
-		]));
-	}
+	document.getElementById('cur_album').replaceChildren(currentsong.album
+		? E('a', {href: '#', onclick: () => locate_album(currentsong)}, currentsong.album)
+		: null
+	);
 
 	// Artist
-	const cur_artist_el = document.getElementById('cur_artist');
-	remove_children(cur_artist_el);
-	append_artist_links(currentsong, cur_artist_el);
+	document.getElementById('cur_artist').replaceChildren(artist_links(currentsong));
 
 	const cur_song_info = document.getElementById('cur_song_info');
 	cur_song_info.onclick = () => { show_info_panel(currentsong); };
@@ -610,12 +471,12 @@ function populate_song_info(all_status) {
 		cur_song_progess_el.disabled = false;
 		if (! window.progress_timeout) {
 			window.progress_timeout = () => {
-				const new_progress = Number(cur_song_progess_el.value) + 0.1;
+				const new_progress = Math.min(Number(cur_song_progess_el.value) + 0.2, status.duration);
 				cur_song_progess_el.value = new_progress;
 				cur_song_elapsed.textContent = format_secs(new_progress);
 				cur_song_duration_el.textContent = "-" + format_secs(status.duration - new_progress);
 
-				wait(100).then(window.progress_timeout);
+				wait(200).then(window.progress_timeout);
 			};
 			window.progress_timeout();
 		}
@@ -655,228 +516,118 @@ function populate_song_info(all_status) {
 }
 
 // TODO: move
-function append_artist_links(song, el) {
+function artist_links(song, el) {
 	if (song.artist === song.albumartist) {
-		const link = document.createElement('a');
-		link.textContent = song.artist || '';
-		link.href = '#';
-		if (window.artist_mode === 'artist') {
-			link.addEventListener('click', () => locate_artist(song));
-		} else {
-			link.addEventListener('click', () => locate_albumartist(song));
-		}
-		el.appendChild(link);
+		const locate_func = window.artist_mode === 'artist' ? locate_artist : locate_albumartist
+		return E('a', {href: '#', onclick: () => locate_func(song)}, song.artist || '')
 
-	} else {
-		const link = document.createElement('a');
-		link.href = '#';
-
-		if (window.artist_mode === 'artist') {
-			link.textContent = song.artist || '';
-			link.addEventListener('click', () => locate_artist(song));
-			el.appendChild(link);
-			el.appendChild(document.createTextNode(' ('));
-			el.appendChild(document.createTextNode(song.albumartist || ''));
-			el.appendChild(document.createTextNode(')'));
-
-		} else {
-			link.textContent = song.albumartist || '';
-			link.addEventListener('click', () => locate_albumartist(song));
-			el.appendChild(document.createTextNode(song.artist || ''));
-			el.appendChild(document.createTextNode(' ('));
-			el.appendChild(link);
-			el.appendChild(document.createTextNode(')'));
-		}
+	} else if (window.artist_mode === 'artist') {
+		return E('span', {}, [
+			E('a', {href: '#', onclick: () => locate_artist(song)}, song.artist || ''),
+			` (${song.albumartist || ''})`,
+		])
 	}
+
+	return E('span', {}, [
+		song.artist || '',
+		' (',
+		E('a', {href: '#', onclick: () => locate_albumartist(song)}, song.albumartist || ''),
+		')',
+	])
 }
 
-function populate_search_results(queue, table) {
-	remove_children(table);
-	table.appendChild(create_table_row(['Title', 'Album', 'Artist'], true));
-
-	for (let i=0; i<queue.length; i++) {
-		const song = queue[i];
-		const song_tr = document.createElement('tr');
-
-		{ // Title column
-			const link = document.createElement('a');
-			link.textContent = song.title || song.name || song.file;
-			link.href = '#';
-			link.addEventListener('click', () => locate_title(song));
-
-			const td = document.createElement('td');
-			td.appendChild(link);
-			song_tr.appendChild(td);
-		}
-
-		{ // Album column
-			const link = document.createElement('a');
-			link.textContent = song.album;
-			link.href = '#';
-			link.addEventListener('click', () => locate_album(song));
-
-			const td = document.createElement('td');
-			td.appendChild(link);
-			song_tr.appendChild(td);
-		}
-
-		{ // Artist column
-			const td = document.createElement('td');
-			append_artist_links(song, td);
-			song_tr.appendChild(td);
-		}
-
-		table.appendChild(song_tr);
-	}
+function populate_search_results(queue) {
+	return [
+		create_table_row(['Title', 'Album', 'Artist'], true),
+		...queue.map(song => create_table_row([
+			E('a', {href: '#', onclick: () => locate_title(song)}, song.title || song.name || song.file),
+			E('a', {href: '#', onclick: () => locate_album(song)}, song.album),
+			artist_links(song),
+		]))
+	];
 }
 
 function get_and_show_outputs() {
-	fetch_json('outputs').then((outputs) => {
-		const div = document.createElement('div');
-		for (const output of outputs.sort((a, b) => a.outputid - b.outputid)) {
-			const p = document.createElement('p');
-			p.classList.add('outputs_modal');
-
-			const enabled = document.createElement('input');
-			enabled.type = 'checkbox';
+	fetch_json('outputs').then(outputs => {
+		display_modal(E('div', {}, outputs.sort((a, b) => a.outputid - b.outputid).map(output => {
 			const input_id = output.outputname.replace(/[^a-zA-Z0-9]/ug, "");
-			enabled.id = input_id;
-			enabled.checked = output.outputenabled === "1";
-			enabled.addEventListener('change', () => {
-				if (enabled.checked) {
-					post_json('enableoutput', {outputid: output.outputid})
-						.then(() => notify(`Enabled output "${output.outputname}"`));
-				} else {
-					post_json('disableoutput', {outputid: output.outputid})
-						.then(() => notify(`Disabled output "${output.outputname}"`));
-				}
-			});
-			p.appendChild(enabled);
-
-			const label = document.createElement('label');
-			label.setAttribute("for", input_id);
-			label.appendChild(make(['span', output.outputname]));
-			p.appendChild(label);
-
-			p.appendChild(parseHTML(`<span data-type="plugin">${output.plugin}</span>`));
-			if (output.attribute) {
-				for (const attr of output.attribute) {
-					p.appendChild(parseHTML(`<span>${attr}</span>`));
-				}
-			}
-
-			div.appendChild(p);
-		}
-
-		display_modal(div);
+			return E('p', {class: 'outputs_modal'}, [
+				E('input', {
+					type: 'checkbox',
+					id: input_id,
+					checked: output.outputenabled === "1",
+					onchange: event => {
+						if (event.target.checked) {
+							post_json('enableoutput', {outputid: output.outputid})
+								.then(() => notify(`Enabled output "${output.outputname}"`, ""));
+						} else {
+							post_json('disableoutput', {outputid: output.outputid})
+								.then(() => notify(`Disabled output "${output.outputname}"`, ""));
+						}
+					}
+				}),
+				E('label', {for: input_id}, E('span', {}, output.outputname)),
+				E('span', {'data-type': "plugin"}, output.plugin),
+				...(output.attribute?.map(attr => parseHTML(`<span>${attr}</span>`)) || []),
+			]);
+		})))
 	});
 }
 
 function update_search_results(results) {
-	const summary = document.getElementById('search-summary');
-	summary.innerText = `Results (${results.length})`;
-	const table = document.getElementById('results-table');
-	populate_search_results(results, table);
+	document.getElementById('search-summary').innerText = `Results (${results.length})`;
+	document.getElementById('results-table').replaceChildren(...populate_search_results(results));
 }
 
 function show_search_results(results, query) {
-	const header = document.createElement("p");
-	header.id = "header";
-	const summary = parseHTML(`<span id="search-summary">Results (${results.length}):</span>`);
-	header.appendChild(summary);
-
-	const search_form = document.createElement('form');
-	search_form.classList.add('btn_container');
-	search_form.addEventListener('submit', (e) => {
-		e.preventDefault();
-		const query = e.target.elements.query.value;
-		if (!query || query.length === 0) { return; }
-		fetch_json('search', {query})
-			.then((resp) => update_search_results(resp, query));
-	});
-	search_form.addEventListener('input', debounce((e) => {
-		const query = e.target.value;
-		if (!query || query.length <= 3) { return; }
-		fetch_json('search', {query})
-			.then((resp) => update_search_results(resp, query));
-	}, 200));
-
-	search_form.innerHTML = `
-		<input type="text" name="query">
-		<button type="submit">Search</button>
-	`;
-	search_form.children[0].value = query;
-
-	header.appendChild(search_form);
-
-	const div = document.createElement('div');
-	div.appendChild(header);
-
-	const table = document.createElement('table');
-	table.id = "results-table";
-	populate_search_results(results.sort((a, b) => a.title > b.title), table);
-	div.appendChild(table);
-
-	display_modal(div);
+	display_modal(E('div', [
+		E("p", {id: 'header'}, [
+			E('span', {id: 'search-summary'}, `Results (${results.length}):`),
+			E('form', {
+				class: 'btn_container',
+				onsubmit: (e) => {
+					e.preventDefault();
+					const query = e.target.elements.query.value;
+					if (!query || query.length === 0) { return; }
+					fetch_json('search', {query}).then((resp) => update_search_results(resp, query));
+				},
+				oninput: debounce((e) => {
+					const query = e.target.value;
+					if (!query || query.length <= 3) { return; }
+					fetch_json('search', {query}).then((resp) => update_search_results(resp, query));
+				}, 200),
+			}, [
+				E('input', {type: 'text', name: 'query', value: query}),
+				E('button', {type: 'submit'}, 'Search'),
+			]),
+		]),
+		E('table', {id: 'results-table'},
+			populate_search_results(results.sort((a, b) => a.title.localeCompare(b.title)))
+		)
+	]));
 }
 
 // Music functions ////////////////////////////////////////////////////////////
 function create_list_item(text, buttons) {
-	const item_p = document.createElement('p');
-	item_p.classList.add('hover-display-wrapper');
-
-	const item_span = document.createElement('span');
-	item_span.textContent = text;
-
-	const btn_span = document.createElement('span');
-	btn_span.classList.add('btn_container');
-	btn_span.classList.add('hover-display');
-
-	for (let i=0; i<buttons.length; i++) {
-		const button_cb = buttons[i];
-		const btn = document.createElement('button');
-
-		switch (i) {
-			case 0:
-				btn.innerHTML = info_icon;
-				btn.title = 'Show information';
-				break;
-			case 1:
-				btn.innerHTML = add_icon;
-				btn.title = 'Add after current';
-				break;
-			case 2:
-				btn.innerHTML = append_icon;
-				btn.title = 'Add at end';
-				break;
-			default:
-				break;
-		}
-
-		btn.addEventListener('click', (event) => {
-			event.stopPropagation();
-			button_cb();
-		});
-		btn_span.appendChild(btn);
-		btn_span.appendChild(document.createTextNode(' '));
-	}
-
-	item_p.appendChild(item_span);
-	item_p.appendChild(btn_span);
-
-	return item_p;
+	return E('p', {class: 'hover-display-wrapper'}, [
+		E('span', text),
+		buttons.length == 3
+			? E('span', {class: 'btn_container hover-display'}, [
+				E('button', {onclick: buttons[0], title: 'Show information'}, [parseHTML(info_icon), ' ']),
+				E('button', {onclick: buttons[1], title: 'Add after current'}, [parseHTML(add_icon), ' ']),
+				E('button', {onclick: buttons[2], title: 'Add at end'}, [parseHTML(append_icon), ' ']),
+			])
+			: null,
+	]);
 }
 
 function remove_class_add(div, el_add, c) {
-	for (const el of div.getElementsByClassName(c)) {
-		el.classList.remove(c);
-	}
+	Array.from(div.getElementsByClassName(c)).forEach(el => el.classList.remove(c))
 	el_add.classList.add(c);
 }
 
 function populate_list(list, list_div, opts) {
-	remove_children(list_div);
-
+	const items = []
 	if (opts.display_ALL) {
 		// TODO All item click
 		const item = create_list_item(
@@ -893,14 +644,11 @@ function populate_list(list, list_div, opts) {
 			remove_class_add(list_div, item, 'selected');
 			opts.onclick_all();
 		});
-		list_div.appendChild(item);
+		items.push(item);
 	}
 
-	for (let i=0; i<list.length; i++) {
-		const info = list[i];
-
+	items.push(...list.map(info => {
 		const selected_info = opts.info_selector(info);
-
 		const item = create_list_item(
 			opts.item_text(info),
 			[
@@ -915,8 +663,9 @@ function populate_list(list, list_div, opts) {
 				opts.onclick(info);
 			});
 		}
-		list_div.appendChild(item);
-	}
+		return item;
+	}));
+	list_div.replaceChildren(...items);
 }
 
 // Titles
@@ -939,22 +688,19 @@ function locate_title(song) {
 }
 
 function clear_titles() {
-	const titles_div = document.getElementById('title-list');
-	remove_children(titles_div);
+	document.getElementById('title-list').replaceChildren();
 }
 
 function get_titles(what, opts={}) {
 	return fetch_json('titles', what)
 		.then((titles) => {
-			if (opts.sort) {
+			if (opts.sort)
 				titles.sort((a, b) => a.title.localeCompare(b.title));
-			}
 			populate_titles(titles);
 		})
 		.then(() => {
-			if (opts.highlight) {
+			if (opts.highlight)
 				highlight({title: opts.highlight});
-			}
 		});
 }
 
@@ -966,9 +712,8 @@ function populate_titles(titles) {
 		info_selector: (info) => info,
 		info_display: (info) => fetch_json('info', info).then(show_info_panel),
 		onclick: (info) => {
-			if (window.display_mode === 'artist') {
+			if (window.display_mode === 'artist')
 				fetch_json('info', info).then(show_info_panel);
-			}
 		},
 	});
 }
@@ -987,8 +732,7 @@ function locate_album(song) {
 }
 
 function clear_albums() {
-	const albums_div = document.getElementById('album-list');
-	remove_children(albums_div);
+	document.getElementById('album-list').replaceChildren();
 }
 
 function locate_playlist(name) {
@@ -1034,28 +778,15 @@ function get_albums(what, opts={}) {
 // TODO move
 function album_artist_info_display(info) {
 	fetch_json('count', info).then((results) => {
-
 		info.songs = results.songs;
 		info.playtime = format_secs(results.playtime);
-
-		const div = document.createElement('div');
-		div.appendChild(get_info_panel(info));
-
-		const btn_div = document.createElement('div');
-		btn_div.classList.add('btn_container');
-
-		const insert_btn = document.createElement('button');
-		insert_btn.textContent = 'Insert';
-		insert_btn.addEventListener('click', () => insert_to_queue(info));
-		btn_div.appendChild(insert_btn);
-
-		const append_btn = document.createElement('button');
-		append_btn.textContent = 'Append';
-		append_btn.addEventListener('click', () => append_to_queue(info));
-		btn_div.appendChild(append_btn);
-
-		div.appendChild(btn_div);
-		display_modal(div);
+		display_modal(E('div', [
+			get_info_panel(info),
+			E('div', {class: 'btn_container'}, [
+				E('button', {onclick: () => insert_to_queue(info)}, 'Insert'),
+				E('button', {onclick: () => append_to_queue(info)}, 'Append'),
+			]),
+		]));
 	});
 }
 
@@ -1066,38 +797,14 @@ function remove_playlist(name) {
 }
 
 function playlist_info_display(info) {
-	const div = document.createElement('div');
-
-	const table = document.createElement('table');
-	table.appendChild(create_table_row(['Playlist', info.playlist]));
-	div.appendChild(table);
-
-	const btn_div = document.createElement('div');
-	btn_div.classList.add('btn_container');
-
-	const insert_btn = document.createElement('button');
-	insert_btn.classList.add("hflex");
-	insert_btn.appendChild(parseHTML(add_icon));
-	insert_btn.append(document.createTextNode('Insert'));
-	insert_btn.addEventListener('click', () => insert_to_queue(info));
-	btn_div.appendChild(insert_btn);
-
-	const append_btn = document.createElement('button');
-	append_btn.classList.add("hflex");
-	append_btn.appendChild(parseHTML(append_icon));
-	append_btn.append(document.createTextNode('Append'));
-	append_btn.addEventListener('click', () => append_to_queue(info));
-	btn_div.appendChild(append_btn);
-
-	const rm_btn = document.createElement('button');
-	rm_btn.classList.add("hflex");
-	rm_btn.appendChild(parseHTML(delete_icon));
-	rm_btn.appendChild(document.createTextNode('Delete'));
-	rm_btn.addEventListener('click', () => remove_playlist(info.playlist).then(hide_modal));
-	btn_div.appendChild(rm_btn);
-
-	div.appendChild(btn_div);
-	display_modal(div);
+	display_modal(E('div', [
+		E('table', [create_table_row(['Playlist', info.playlist])]),
+		E('div', {class: 'btn_container'}, [
+			E('button', {class: 'hflex', onclick: () => insert_to_queue(info)}, [parseHTML(add_icon), 'Insert']),
+			E('button', {class: 'hflex', onclick: () => append_to_queue(info)}, [parseHTML(append_icon), 'Append']),
+			E('button', {class: 'hflex', onclick: () => remove_playlist(info.playlist).then(hide_modal)}, [parseHTML(delete_icon), 'Delete']),
+		]),
+	]));
 }
 
 function populate_albums(artist, albums) {
@@ -1125,12 +832,7 @@ function populate_albums(artist, albums) {
 
 // Artists
 function locate_artist(song) {
-	if (window.display_mode === 'playlists') {
-		set_display_mode('artist').then(() => highlight({artist: song.artist}));
-	} else {
-		highlight({artist: song.artist});
-	}
-
+	set_display_mode('library').then(() => highlight({artist: song.artist}));
 	get_albums({artist: song.artist});
 	hide_modal();
 }
@@ -1142,19 +844,13 @@ function random_artist() {
 }
 
 function locate_albumartist(song) {
-	if (window.display_mode === 'playlists') {
-		set_display_mode('artist').then(() => highlight({artist: song.albumartist}));
-	} else {
-		highlight({artist: song.albumartist});
-	}
-
+	set_display_mode('library').then(() => highlight({artist: song.albumartist}));
 	get_albums({albumartist: song.albumartist}, {clear_titles: true});
 	hide_modal();
 }
 
 function clear_artists() {
-	const artists_div = document.getElementById('artist-list');
-	remove_children(artists_div);
+	document.getElementById('artist-list').replaceChildren();
 }
 
 function get_artists() {
@@ -1164,13 +860,12 @@ function get_artists() {
 		case 'albumartist':
 			return fetch_json('albumartists').then(populate_artists);
 		default:
-			throw new Error();
+			throw new Error(window.artist_mode);
 	}
 }
 
 function populate_artists(artists) {
-	const list_div = document.getElementById('artist-list');
-	populate_list(artists, list_div, {
+	populate_list(artists, document.getElementById('artist-list'), {
 		display_ALL: true,
 		onclick_all: () => get_albums({}),
 		info_display: album_artist_info_display,
@@ -1186,145 +881,58 @@ function move_song(from_id, to_pos) {
 }
 
 function populate_queue(queue) {
-	const queue_table = document.getElementById('queue');
-	remove_children(queue_table);
-
-	const header_tr = document.createElement('tr');
-	header_tr.innerHTML = '<th>' + [
-		'', 'Title', 'Album', 'Artist', 'Length'
-	].join('</th><th>') + '</th>';
-
-	queue_table.appendChild(header_tr);
-
-	for (let i=0; i<queue.length; i++) {
-		const song = queue[i];
-		const song_tr = document.createElement('tr');
-
-		{ // Track column
-			const td = document.createElement('td');
-			td.textContent = song.track || '';
-			song_tr.appendChild(td);
-		}
-
-		{ // Title column
-			const link = document.createElement('a');
-			link.textContent = song.title || song.name || song.file;
-			link.href = '#';
-			link.addEventListener('click', () => locate_title(song));
-
-			const td = document.createElement('td');
-			td.appendChild(link);
-			td.addEventListener('contextmenu', (e) => {
-				e.preventDefault();
-				draw_context_menu(e.x, e.y, [
-					{
-						title: 'Remove song',
-						command: () => remove_from_queue({ids: [song.pos]}),
-					},
-				]);
-			});
-
-			song_tr.appendChild(td);
-		}
-
-		{ // Album column
-			const link = document.createElement('a');
-			link.textContent = song.album;
-			link.href = '#';
-			link.addEventListener('click', () => locate_album(song));
-
-			const td = document.createElement('td');
-			td.appendChild(link);
-			td.addEventListener('contextmenu', (e) => {
-				e.preventDefault();
-				draw_context_menu(e.x, e.y, [
-					{
-						title: 'Remove album',
-						command: () => remove_from_queue({album: song.album}),
-					},
-				]);
-			});
-			song_tr.appendChild(td);
-		}
-
-		{ // Albumartist column
-			const td = document.createElement('td');
-			append_artist_links(song, td);
-			td.addEventListener('contextmenu', (e) => {
-				e.preventDefault();
-				draw_context_menu(e.x, e.y, [
-					{
-						title: 'Remove artist',
-						command: () => remove_from_queue({artist: song.artist})
-					},
-					{
-						title: 'Remove album artist',
-						command: () => remove_from_queue({albumartist: song.albumartist})
-					},
-				]);
-			});
-			song_tr.appendChild(td);
-		}
-
-		{ // Length column
-			const td = document.createElement('td');
-
-			const length_span = document.createElement('span');
-			length_span.textContent = format_secs(song.duration);
-			td.appendChild(length_span);
-			song_tr.appendChild(td);
-		}
-
-		{
-			const td = document.createElement('td');
-			const btn_span = document.createElement('span');
-			btn_span.classList.add('hflex');
-			const toggle_btn = document.createElement('button');
-			toggle_btn.classList.add('hflex');
-			if (song.current === 'play') {
-				toggle_btn.innerHTML = pause_icon;
-				toggle_btn.addEventListener('click', pause);
-			} else {
-				toggle_btn.innerHTML = play_icon;
-				toggle_btn.addEventListener('click', () => {
-					post_json('play', {id: song.pos}).then(refresh);
-				});
-			}
-
-			btn_span.appendChild(toggle_btn);
-
-			const info_btn = document.createElement('button');
-			info_btn.innerHTML = info_icon;
-			info_btn.classList.add('hflex');
-			info_btn.addEventListener('click', () => show_info_panel(song));
-			btn_span.appendChild(info_btn);
-
-			const song_pos = Number(song.pos);
-
-			const mv_up_btn = document.createElement('button');
-			mv_up_btn.innerHTML = '&#9650;';
-			mv_up_btn.title = 'Move song up';
-			mv_up_btn.classList.add('hflex');
-			mv_up_btn.addEventListener('click', () => move_song(song_pos, song_pos - 1));
-			btn_span.appendChild(mv_up_btn);
-
-			const mv_down_btn = document.createElement('button');
-			mv_down_btn.innerHTML = '&#9660;';
-			mv_down_btn.title = 'Move song down';
-			mv_down_btn.classList.add('hflex');
-			mv_down_btn.addEventListener('click', () => move_song(song_pos, song_pos + 1));
-			btn_span.appendChild(mv_down_btn);
-
-			td.appendChild(btn_span);
-			song_tr.appendChild(td);
-		}
-
-		if (song.current) {
-			song_tr.classList.add('current');
-		}
-
-		queue_table.appendChild(song_tr);
-	}
+	document.getElementById('queue').replaceChildren(
+		create_table_row(['', 'Title', 'Album', 'Artist', 'Length'], true),
+		...queue.map(song => E('tr', {class: song.current ? 'current' : null}, [
+			E('td', song.track || ''),
+			E('td', {
+				oncontextmenu: (e) => {
+					e.preventDefault();
+					draw_context_menu(e.x, e.y, [
+						{title: 'Remove song', command: () => remove_from_queue({ids: [song.pos]})},
+					]);
+				},
+			}, E('a', {href: '#', onclick: () => locate_title(song)}, song.title || song.name || song.file)),
+			E('td', {
+				oncontextmenu: (e) => {
+					e.preventDefault();
+					draw_context_menu(e.x, e.y, [
+						{title: 'Remove album', command: () => remove_from_queue({album: song.album})},
+					]);
+				}
+			}, E('a', {href: '#', onclick: () => locate_album(song)}, song.album)),
+			E('td', {
+				oncontextmenu: (e) => {
+					e.preventDefault();
+					draw_context_menu(e.x, e.y, [
+						{title: 'Remove artist', command: () => remove_from_queue({artist: song.artist})},
+						{title: 'Remove album artist', command: () => remove_from_queue({albumartist: song.albumartist})},
+					]);
+				}
+			}, artist_links(song)),
+			E('td', E('span', format_secs(song.duration))),
+			E('td', E('span', {class: 'hflex'}, [
+				E('button', {
+					class: 'hflex',
+					onclick: () => song.current === 'play' ? pause() : post_json('play', {id: song.pos}).then(refresh),
+				}, parseHTML(song.current === 'play' ? pause_icon : play_icon)),
+				E('button', {
+					class: 'hflex',
+					onclick: () => show_info_panel(song),
+				}, parseHTML(info_icon)),
+				E('button', {
+					class: 'hflex',
+					title: 'Move song up',
+					onclick: () => move_song(Number(song.pos), Number(song.pos) - 1),
+				}, parseHTML('&#9650;')),
+				E('button', {
+					class: 'hflex',
+					title: 'Move song down',
+					onclick: () => move_song(Number(song.pos), Number(song.pos) + 1),
+				}, parseHTML('&#9660;')),
+			])),
+		])),
+	);
 }
 
 function update_queue() {
@@ -1334,7 +942,6 @@ function update_queue() {
 function remove_from_queue(what) {
 	post_json('remove', what)
 		.then((e) => {
-			// TODO: better icon
 			notify(`Removed ${plural(e.removed, 'song', 'songs')}`, remove_icon);
 			update_queue();
 		});
@@ -1360,13 +967,11 @@ function append_to_queue(what) {
 function set_display_mode(mode) {
 	switch (mode) {
 		case 'playlists':
-			document.getElementById('playlists_mode').checked = true;
-			break;
 		case 'library':
-			document.getElementById('library_mode').checked = true;
+			document.getElementById(`${mode}_mode`).checked = true;
 			break;
 		default:
-			throw new Error();
+			throw new Error(mode);
 	}
 
 	set_param("mode", mode);
@@ -1394,13 +999,13 @@ function toggle_theme() {
 }
 
 function set_artist_mode(mode) {
-	if (window.artist_mode === mode) {
+	if (window.artist_mode === mode)
 		return Promise.resolve();
-	}
 	window.artist_mode = mode;
 
 	clear_albums();
 	clear_titles();
+	update_queue();
 	return get_artists();
 }
 
@@ -1443,21 +1048,10 @@ function refresh() {
 		});
 }
 
-function pause() {
-	post_json('pause').then(refresh);
-}
-
-function stop() {
-	post_json('stop').then(refresh);
-}
-
-function next() {
-	post_json('next').then(refresh);
-}
-
-function prev() {
-	post_json('prev').then(refresh);
-}
+function pause() { post_json('pause').then(refresh); }
+function stop() { post_json('stop').then(refresh); }
+function next() { post_json('next').then(refresh); }
+function prev() { post_json('prev').then(refresh); }
 
 function adjust_volume(change) {
 	const volume_slider = document.getElementById("volume_slider");
@@ -1565,61 +1159,44 @@ function set_auto_update(value) {
 	}
 }
 
-function get_and_show_summary(field='albumartist', sort_by='playtime') {
-	const loading_div = document.createElement("div");
-	loading_div.innerText = "Loading summary ...";
-	display_modal(loading_div);
+function get_and_show_summary(field='artist', sort_by='playtime') {
+	display_modal(E("div", "Loading summary ..."));
 
 	fetch_json('count', {group: field}).then((results) => {
 		if (!results) { return; }
 
-		const summary = [];
-		for (let i=0; i<results[field].length; i++) {
-			summary.push({
-				[field]: results[field][i],
-				songs: results.songs[i],
-				playtime: results.playtime[i],
-				average: (results.playtime[i] / results.songs[i]),
-			});
-		}
-
+		const summary = results[field].map((x, i) => ({
+			[field]: x,
+			songs: results.songs[i],
+			playtime: results.playtime[i],
+			average: (results.playtime[i] / results.songs[i]),
+		}));
 		summary.sort((a, b) => b[sort_by] - a[sort_by]);
 
-		const tbl = document.createElement('table');
-		tbl.appendChild(create_table_row([sentenceCase(field), 'Count', 'Duration', 'Average'], true));
-
-		for (const entry of summary) {
-			tbl.appendChild(create_table_row([
-				entry[field],
-				entry.songs,
-				format_secs(entry.playtime),
-				format_secs(entry.average),
-			]));
-		}
-
-		const btns_div = document.createElement('div');
-		btns_div.classList.add('btn_container');
-		for (const field_label of ['albumartist', 'artist', 'album', 'title', 'genre']) {
-			const radio = document.createElement('input');
-			radio.type = 'radio';
-			radio.name = 'summary_field';
-			radio.id = field_label;
-			radio.addEventListener('change', () => get_and_show_summary(field_label));
-			btns_div.appendChild(radio);
-			radio.checked = field_label === field;
-
-			const label = document.createElement('label');
-			label.setAttribute("for", field_label);
-			label.textContent = sentenceCase(field_label);
-			btns_div.appendChild(label);
-		}
-
-		const div = document.createElement('div');
-		div.appendChild(btns_div);
-		div.appendChild(document.createElement('br'));
-		div.appendChild(tbl);
-
-		display_modal(div);
+		display_modal(E('div', [
+			E('div', {class: 'btn_container'},
+				['albumartist', 'artist', 'album', 'title', 'genre'].flatMap(label => [
+					E('input', {
+						type: 'radio',
+						name: 'summary_field',
+						id: label,
+						checked: label === field,
+						onchange: () => get_and_show_summary(label)
+					}),
+					E('label', {for: label}, sentenceCase(label)),
+				]),
+			),
+			E('br'),
+			E('table', [
+				create_table_row([sentenceCase(field), 'Count', 'Duration', 'Average'], true),
+				...summary.map(entry => create_table_row([
+					entry[field],
+					entry.songs,
+					format_secs(entry.playtime),
+					format_secs(entry.average),
+				])),
+			]),
+		]));
 	});
 }
 
@@ -1761,10 +1338,7 @@ window.addEventListener('load', () => {
 	setup();
 	refresh()
 		.then((info) => locate_title(info.currentsong))
-		.then(() => {
-			const queue_cur = document.querySelector('#queue .current');
-			if (queue_cur) { queue_cur.scrollIntoView(); }
-		});
+		.then(() => document.querySelector('#queue .current')?.scrollIntoView());
 });
 
 window.addEventListener('click', hide_context_menu);

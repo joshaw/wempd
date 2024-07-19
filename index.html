@@ -264,11 +264,11 @@ input[type=radio] + label:last-of-type {
 
 #song_controls #search_form { padding-bottom: 5px; }
 
-#artist-list, #album-list, #title-list { overflow-y: scroll; }
 #artist-list { grid-area: artists; }
 #album-list { grid-area: albums; }
 #title-list { grid-area: titles; }
 
+.item_list { overflow-y: scroll; }
 .item_list p {
 	background: var(--list-item-bg);
 	cursor: pointer;
@@ -289,48 +289,49 @@ input[type=radio] + label:last-of-type {
 	overflow-y: scroll;
 }
 
-#queue { width: 100%; word-break: break-word; }
-#queue tr td:last-child span { visibility: hidden; }
-#queue tr:hover td:last-child span { visibility: initial; }
+#queue {
+	width: 100%;
+	word-break: break-word;
 
-#queue th, #queue td { padding: 4px 5px; }
+	& tr td:last-child span { visibility: hidden; }
+	& tr:hover td:last-child span { visibility: initial; }
+	& th, & td { padding: 4px 5px; }
 
-#queue td:nth-child(1), #queue th:nth-child(1),
-#queue td:nth-child(5), #queue th:nth-child(5) {
-	text-align: right;
+	& td:nth-child(1), & th:nth-child(1),
+	& td:nth-child(5), & th:nth-child(5) {
+		text-align: right;
+	}
+
+	& .current { background: var(--selected); }
 }
-
-#queue .current { background: var(--selected); }
-
-#queue .dnd { background: magenta; }
 
 #resizer {
 	grid-area: resizer;
 	cursor: row-resize;
 }
 
+@keyframes remove-popup { 100% { transform: translate(150%); } }
 #logger {
 	bottom: 0;
 	right: 0;
 	position: absolute;
 	z-index: 10;
-}
 
-#logger p {
-	background: var(--notification);
-	border-radius: 5px;
-	cursor: pointer;
-	margin: 10px;
-	padding: 10px;
-	position: relative;
-}
+	& p {
+		background: var(--notification);
+		border-radius: 5px;
+		cursor: pointer;
+		margin: 10px;
+		padding: 10px;
+		position: relative;
+	}
 
-@keyframes remove-popup { 100% { transform: translate(150%); } }
-#logger p.removing {
-	animation-duration: 80ms;
-	animation-fill-mode: forwards;
-	animation-name: remove-popup;
-	animation-timing-function: ease-in;
+	& p.removing {
+		animation-duration: 80ms;
+		animation-fill-mode: forwards;
+		animation-name: remove-popup;
+		animation-timing-function: ease-in;
+	}
 }
 
 #error-message {
@@ -368,30 +369,30 @@ input[type=radio] + label:last-of-type {
 	top: 7.5%;
 	transform: translate(-50%);
 	width: 75%;
-}
 
-#modal .close_button {
-	position: absolute;
-	right: 30px;
-}
+	& .close_button {
+		position: absolute;
+		right: 30px;
+	}
 
-#modal .modal_content { overflow-y: scroll; }
+	& .modal_content { overflow-y: scroll; }
 
-#modal img {
-	max-height: 75vh;
-	object-fit: contain;
-}
+	& img {
+		max-height: 75vh;
+		object-fit: contain;
+	}
 
-#modal #header {
-	margin: 0 80px 20px 0;
-	display: flex;
-	justify-content: space-between;
-}
+	& #header {
+		margin: 0 80px 20px 0;
+		display: flex;
+		justify-content: space-between;
+	}
 
-#modal .outputs_modal span { margin: 5px; }
-#modal .outputs_modal span[data-type]::before {
-	content: attr(data-type) ': ';
-	color: grey;
+	& .outputs_modal span { margin: 5px; }
+	& .outputs_modal span[data-type]::before {
+		content: attr(data-type) ': ';
+		color: grey;
+	}
 }
 
 #context_menu {
@@ -400,14 +401,14 @@ input[type=radio] + label:last-of-type {
 	border-radius: 5px;
 	display: none;
 	position: absolute;
-}
 
-#context_menu p {
-	cursor: pointer;
-	padding: 3px;
-	margin: 5px;
+	& p {
+		cursor: pointer;
+		padding: 3px;
+		margin: 5px;
+	}
+	& p:hover { background: var(--selected); }
 }
-#context_menu p:hover { background: var(--selected); }
 </style>
 <body>
 	<div id="connection_form" class="hflex">
