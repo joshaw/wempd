@@ -442,13 +442,13 @@ function populate_song_info(all_status) {
 	// Title
 	document.getElementById('cur_title').replaceChildren(currentsong.title
 		? E('a', {href: '#', onclick: () => locate_title(currentsong)}, currentsong.title)
-		: currentsong.name || currentsong.file
+		: currentsong.name || currentsong.file || ""
 	);
 
 	// Album
 	document.getElementById('cur_album').replaceChildren(currentsong.album
 		? E('a', {href: '#', onclick: () => locate_album(currentsong)}, currentsong.album)
-		: null
+		: ""
 	);
 
 	// Artist
