@@ -114,7 +114,7 @@ function wait(ms) {
 
 function debounce(func, wait) {
 	let timeout;
-	return function() {
+	return () => {
 		const context = this;
 		const args = arguments;
 		const later = function() {
@@ -230,13 +230,10 @@ function show_error(msg) {
 	error_el.textContent = msg;
 	error_el.style.display = 'inherit';
 
-	if (window.error_message_timeout) {
+	if (window.error_message_timeout)
 		clearTimeout(window.error_message_timeout);
-	}
 
-	window.error_message_timeout = wait(3500).then(() => {
-		error_el.style.display = 'none';
-	});
+	window.error_message_timeout = wait(3500).then(() => error_el.style.display = 'none');
 }
 
 function draw_context_menu(x, y, items) {
@@ -252,12 +249,10 @@ function draw_context_menu(x, y, items) {
 	const cmenu_width = cmenu.offsetWidth;
 	const cmenu_height = cmenu.offsetHeight;
 
-	if (y + cmenu_height > win_height) {
+	if (y + cmenu_height > win_height)
 		cmenu.style.top = (win_height - cmenu_height) + 'px';
-	}
-	if (x + cmenu_width > win_width) {
+	if (x + cmenu_width > win_width)
 		cmenu.style.left = (win_width - cmenu_width) + 'px';
-	}
 }
 
 function hide_context_menu() {
@@ -469,17 +464,13 @@ function populate_song_info(all_status) {
 
 	if (status.state === 'play') {
 		cur_song_progess_el.disabled = false;
-		if (! window.progress_timeout) {
-			window.progress_timeout = () => {
-				const new_progress = Math.min(Number(cur_song_progess_el.value) + 0.2, status.duration);
-				cur_song_progess_el.value = new_progress;
-				cur_song_elapsed.textContent = format_secs(new_progress);
-				cur_song_duration_el.textContent = "-" + format_secs(status.duration - new_progress);
-
-				wait(200).then(window.progress_timeout);
-			};
-			window.progress_timeout();
-		}
+		clearInterval(window.progress_timeout);
+		window.progress_timeout = setInterval(() => {
+			const new_progress = Math.min(Number(cur_song_progess_el.value) + 0.2, status.duration);
+			cur_song_progess_el.value = new_progress;
+			cur_song_elapsed.textContent = format_secs(new_progress);
+			cur_song_duration_el.textContent = "-" + format_secs(status.duration - new_progress);
+		}, 200);
 	} else {
 		window.progress_timeout = null;
 		if (status.state === 'stop') {
@@ -1012,9 +1003,8 @@ function set_artist_mode(mode) {
 function check_db_update(info) {
 	const update_id = parseInt(info.status.updating_db) || -1;
 
-	if (update_id >= 0) {
+	if (update_id >= 0)
 		window.update_in_progress = update_id;
-	}
 
 	if (!window.update_in_progress && update_id >= 0) {
 		window.update_in_progress = update_id;
