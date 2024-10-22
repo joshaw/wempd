@@ -11,7 +11,7 @@ def html_link(text, href, root=False, folder=True):
     if isinstance(href, str):
         href = (href,)
     if href[0].startswith("http://") or href[0].startswith("https://"):
-        href = href[0]
+        href = "/".join(h.replace("'", "%27") for h in href)
     else:
         href = "/".join((quote_plus(h) for h in href))
         href = f"{'/' if root else './'}{href}{'/' if folder else ''}"
