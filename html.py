@@ -303,7 +303,7 @@ def url_status(*, client, path, query):
         *gen_mode_button("single"),
         *gen_mode_button("consume"),
         "</table>",
-        "<p><b>Modes:</b> ",
+        "<p><b>More views:</b> ",
         " | ".join(
             [
                 html_link("Artists", ("mpd", "artists"), root=True),
