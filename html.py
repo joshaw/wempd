@@ -151,6 +151,7 @@ def song_info_table(song_info, minimal=False):
         "originaldate": "Year",
         "label": "Label",
         "duration": "Duration",
+        "file": "File",
     }
     all_keys = song_info.keys()
     other_keys = set(all_keys).difference(special_keys.keys())
