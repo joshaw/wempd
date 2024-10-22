@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import re
 import time
@@ -180,6 +181,11 @@ def song_info_table(song_info, minimal=False):
                     for g in value.replace(";", "/").split("/")
                 ]
             )
+        elif key == "file":
+            if value.startswith("http"):
+                href = value
+            elif base_url := os.getenv("WEMPD_BASE_MUSIC_URL"):
+                href = (base_url.rstrip("/"), value)
         elif key == "originaldate":
             href = ("mpd", "dates", value)
         elif key == "label":

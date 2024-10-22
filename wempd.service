@@ -5,6 +5,7 @@ After=network.target
 [Service]
 SyslogIdentifier=wempd
 Environment="WEMPD_LISTEN_ADDRESS=127.0.0.1"
+Environment="WEMPD_BASE_MUSIC_URL=https://media.jawainwright.co.uk/Music/"
 ExecStart=/usr/bin/python3 -u wempd.py
 WorkingDirectory=/home/josh/repos/wempd
 Restart=on-failure
