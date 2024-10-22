@@ -280,7 +280,7 @@ def url_status(*, client, path, query):
         return [f"<tr><td>{title}</td><td>{value}</td><td>{button}</td></tr>"]
 
     refresh = {}
-    if status["state"] == "play":
+    if status["state"] == "play" and "duration" in status:
         remaining = float(status["duration"]) - float(status["elapsed"])
         refresh = {"refresh": int(remaining + 1)}
 
