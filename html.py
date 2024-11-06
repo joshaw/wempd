@@ -29,7 +29,14 @@ def html_form_link(href, data, text):
     )
 
 
-def get_header(client):
+def get_header(client, path):
+    def link(text, link_path, name, folder=True):
+        return (
+            text
+            if path == link_path
+            else html_link(text, ("mpd", name), root=True, folder=folder)
+        )
+
     return [
         """<!DOCTYPE html>
         <head>
@@ -104,11 +111,11 @@ def get_header(client):
         "</div><div class='hscroll'>",
         " | ".join(
             [
-                html_link("Status", ("mpd", "status"), root=True, folder=False),
-                html_link("Queue", ("mpd", "queue"), root=True, folder=True),
-                html_link("AlbumArtists", ("mpd", "albumartists"), root=True),
-                html_link("Albums", ("mpd", "albums"), root=True),
-                html_link("Playlists", ("mpd", "playlists"), root=True),
+                link("Status", "/status", "status", folder=False),
+                link("Queue", "/queue/", "queue"),
+                link("AlbumArtists", "/albumartists/", "albumartists"),
+                link("Albums", "/albums/", "albums"),
+                link("Playlists", "/playlists/", "playlists"),
             ]
         ),
         "</div>",
@@ -751,7 +758,7 @@ def handle_get(client, path, query):
             else:
                 lines = resp
                 headers = {}
-            return get_header(client) + lines, headers
+            return get_header(client, path) + lines, headers
 
     return get_header(client) + ["<h2>Page not found</h2>", f"<p>{path}</p>"], {
         "code": 404
