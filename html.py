@@ -295,7 +295,7 @@ def url_status(*, client, path, query):
     return [
         "<h2>Current Song</h2>",
         *song_info_table(client.currentsong(), minimal=True),
-        f"<h2>Status</h2>",
+        "<h2>Status</h2>",
         "<table>",
         f"<tr><td>State</td><td>{status['state']}</td></tr>",
         f"<tr><td>Volume</td><td>{volume}</td><td>",
@@ -507,8 +507,10 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
         "album": None if all_tracks else album,
     }
 
+    def sort_func(a):
+        return a["title"] if all_tracks else int(a["track"])
+
     thelist = []
-    sort_func = lambda a: a["title"] if all_tracks else int(a["track"])
     for a in sorted(api.list_titles(client, data), key=sort_func):
         value = a["track"]
         link = html_link(a["title"], a["file"], folder=False)
@@ -725,7 +727,6 @@ matcher = {
 
 
 def handle_get(client, path, query):
-    page = None
     for pattern, func in matcher.items():
         matches = re.fullmatch(pattern, path)
         if matches:

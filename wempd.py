@@ -75,7 +75,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.return_json(list_albums(self.client, query))
 
         elif path == "/art":
-            if not "file" in query:
+            if "file" not in query:
                 self.return_json_fail("Missing 'file' parameter")
                 return
 
@@ -228,7 +228,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             elif path == "/consume":
                 state = post_data.get("enabled", ["1"])
 
-                if not state in ("1", "0"):
+                if state not in ("1", "0"):
                     self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
                     return
 
@@ -304,7 +304,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             elif path == "/random":
                 state = post_data.get("enabled", ["1"])
 
-                if not state in ("1", "0"):
+                if state not in ("1", "0"):
                     self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
                     return
 
@@ -332,7 +332,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             elif path == "/repeat":
                 state = post_data.get("enabled", ["1"])
 
-                if not state in ("1", "0"):
+                if state not in ("1", "0"):
                     self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
                     return
 
@@ -375,7 +375,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             elif path == "/single":
                 state = post_data.get("enabled", ["1"])
 
-                if not state in ("1", "0"):
+                if state not in ("1", "0"):
                     self.return_json_fail("Parameter, 'enabled', should be '1' or '0'")
                     return
 

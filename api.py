@@ -1,6 +1,7 @@
 import mpd
 import os
 
+
 def init_client(client):
     if client:
         try:
@@ -19,6 +20,7 @@ def init_client(client):
     print(f"Connected to mpd on: {sock_name[0]}:{sock_name[1]}")
     print(f"MPD version: {client.mpd_version}")
     return client
+
 
 def remove_path_prefix(path):
     PREFIX = os.getenv("WEMPD_PATH_PREFIX", "/mpd")
@@ -43,7 +45,18 @@ def get_status(client):
 
 def info_pairs(data, allowed_fields=None):
     cmd = []
-    fields = {"artist", "albumartist", "album", "title", "name", "file", "group", "genre", "originaldate", "label"}
+    fields = {
+        "artist",
+        "albumartist",
+        "album",
+        "title",
+        "name",
+        "file",
+        "group",
+        "genre",
+        "originaldate",
+        "label",
+    }
     if not allowed_fields:
         allowed_fields = fields
 
@@ -87,7 +100,9 @@ def list_titles(client, query):
         titles = client.listplaylistinfo(query["playlist"])
 
     else:
-        pairs = info_pairs(query, ("artist", "albumartist", "album", "genre", "originaldate", "label"))
+        pairs = info_pairs(
+            query, ("artist", "albumartist", "album", "genre", "originaldate", "label")
+        )
         if pairs:
             titles = client.find(*pairs)
         else:
