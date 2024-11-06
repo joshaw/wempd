@@ -234,7 +234,11 @@ def song_info_table(song_info, minimal=False):
 
 
 def create_song_page(client, header, data):
-    song_info = client.find(*api.info_pairs(data))[0]
+    try:
+        song_info = client.find(*api.info_pairs(data))[0]
+    except IndexError:
+        return ["<h2>Page not found</h2>", f"<p>{data}</p>"], {"code": 404}
+
     header.append(song_info["title"])
     return create_page(header, data, song_info_table(song_info))
 
@@ -400,7 +404,11 @@ def url_queue(*, client, path, query):
 
 
 def url_queue_item(item, *, client, path, query):
-    song_info = client.playlistinfo(int(item))[0]
+    try:
+        song_info = client.playlistinfo(int(item))[0]
+    except:
+        return [], {"location": f"/mpd/queue/", "code": 301}
+
     header = " / ".join([html_link("Queue", "."), item])
     return (
         [f"<h2>{header}</h2>"]
