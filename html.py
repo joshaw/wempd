@@ -414,7 +414,7 @@ def url_queue_item(item, *, client, path, query):
     try:
         song_info = client.playlistinfo(int(item))[0]
     except:
-        return [], {"location": f"/mpd/queue/", "code": 301}
+        return [], {"location": "/mpd/queue/", "code": 301}
 
     header = " / ".join([html_link("Queue", "."), item])
     return (
