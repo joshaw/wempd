@@ -452,13 +452,14 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
     data = {"playlist": playlist_name}
     thelist = []
     for song in api.list_titles(client, {"playlist": playlist_name}):
+        artist = song.get("albumartist", song.get("artist", ""))
         name = song.get("title")
         if not name:
             name = song.get("name")
         if not name:
             name = song.get("file")
         link = html_link(name, song["file"], folder=False)
-        thelist.append(f"<li>{link}</li>")
+        thelist.append(f"<li>{artist} - {link}</li>")
     return create_list_page(header, data, thelist)
 
 
