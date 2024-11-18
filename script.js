@@ -462,9 +462,9 @@ function populate_song_info(all_status) {
 	cur_song_progess_el.value = status.elapsed;
 	cur_song_progess_el.max = currentsong.duration;
 
+	clearInterval(window.progress_timeout);
 	if (status.state === 'play') {
 		cur_song_progess_el.disabled = false;
-		clearInterval(window.progress_timeout);
 		window.progress_timeout = setInterval(() => {
 			const new_progress = Math.min(Number(cur_song_progess_el.value) + 0.2, status.duration);
 			cur_song_progess_el.value = new_progress;
