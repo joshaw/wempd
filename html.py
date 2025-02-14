@@ -393,7 +393,7 @@ def url_queue(*, client, path, query):
         album = song.get("album", "")
         title = song.get("title")
 
-        if not title:
+        if not title or len(title) <= 1:
             title = song.get("name", song.get("file", "??"))
 
         song_link = html_link(title, str(index), folder=False)
