@@ -47,6 +47,9 @@ def get_header(client, path):
         <link rel="icon" type="image/png" sizes="32x32" href="/mpd/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="96x96" href="/mpd/favicon-96x96.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/mpd/favicon-16x16.png">
+        """,
+        '<link rel="manifest" href="manifest.json" />' if path == "/status" else "",
+        """
         <style>
         body {
             max-width: 800px;
@@ -764,6 +767,6 @@ def handle_get(client, path, query):
                 headers = {}
             return get_header(client, path) + lines, headers
 
-    return get_header(client) + ["<h2>Page not found</h2>", f"<p>{path}</p>"], {
+    return get_header(client, path) + ["<h2>Page not found</h2>", f"<p>{path}</p>"], {
         "code": 404
     }

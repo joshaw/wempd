@@ -1,0 +1,13 @@
+{
+	"name": "Wempd",
+	"icons": [
+		{
+			"src": "favicon-96x96.png",
+			"type": "image/png",
+			"sizes": "72x72 96x96 128x128 256x256 257x257",
+			"purpose": "maskable"
+		}
+	],
+	"start_url": "./status",
+	"display": "standalone"
+}

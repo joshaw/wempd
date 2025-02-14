@@ -166,13 +166,19 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             return
 
+        if path == "/manifest.json":
+            with open("manifest.json", "rb") as f:
+                self.send_headers(content_type="application/manifest+json")
+                self.wfile.write(f.read())
+                return
+
         if path.removeprefix("/") in [
             "favicon-16x16.png",
             "favicon-32x32.png",
             "favicon-96x96.png",
         ]:
             with open(path.removeprefix("/"), "rb") as f:
-                self.send_headers()
+                self.send_headers(content_type="image/png")
                 self.wfile.write(f.read())
                 return
 
