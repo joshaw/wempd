@@ -1295,6 +1295,8 @@ function setup() {
 			document.removeEventListener("mousemove", resize, false);
 		}, false);
 	});
+
+	window.setInterval(refresh, 1000 * 60 * 1); // Refresh every minute
 }
 
 window.cur_file = null;
