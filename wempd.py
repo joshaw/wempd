@@ -27,6 +27,15 @@ import html
 logging.basicConfig(level=logging.INFO)
 
 
+def catch_pipe_errors(func):
+    def trycatch(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except BrokenPipeError:
+            print("Caught BrokenPipeError, continuing")
+    return trycatch
+
+
 class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
     client = init_client(None)
 
@@ -145,6 +154,7 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/titles":
             self.return_json(list_titles(self.client, query))
 
+    @catch_pipe_errors
     def do_GET(self):
         MPDRequestHandler.client = init_client(self.client)
 
