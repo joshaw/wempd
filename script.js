@@ -2,7 +2,6 @@
 
 // Global variables ///////////////////////////////////////////////////////////
 const NOTIFICATION_TIMEOUT = 3000;
-const REFRESH_INTERVAL = 5000;
 
 function svg_icon(svg) {
 	return `<svg class="svg-icon" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
@@ -412,6 +411,25 @@ function get_and_show_stats(do_auto_refresh=true) {
 	});
 }
 
+let progress_marker = 0;
+function init_progress(el1, el2, el3, elapsed, duration) {
+	let anim_start;
+	const marker = ++progress_marker;
+	function update_progress(timestamp) {
+		anim_start ??= timestamp;
+		const anim_elapsed = timestamp - anim_start;
+
+		const new_progress = Math.min(elapsed + 0.001 * anim_elapsed, duration);
+		el1.textContent = format_secs(new_progress);
+		el2.value = new_progress;
+		el3.textContent = "-" + format_secs(duration - new_progress);
+
+		if (progress_marker === marker && window.state === "play")
+			requestAnimationFrame(update_progress);
+	}
+	requestAnimationFrame(update_progress);
+}
+
 function populate_song_info(all_status) {
 	const {currentsong, status} = all_status;
 
@@ -462,21 +480,18 @@ function populate_song_info(all_status) {
 	cur_song_progess_el.value = status.elapsed;
 	cur_song_progess_el.max = currentsong.duration;
 
-	clearInterval(window.progress_timeout);
-	if (status.state === 'play') {
-		cur_song_progess_el.disabled = false;
-		window.progress_timeout = setInterval(() => {
-			const new_progress = Math.min(Number(cur_song_progess_el.value) + 0.2, status.duration);
-			cur_song_progess_el.value = new_progress;
-			cur_song_elapsed.textContent = format_secs(new_progress);
-			cur_song_duration_el.textContent = "-" + format_secs(status.duration - new_progress);
-		}, 200);
-	} else {
-		window.progress_timeout = null;
-		if (status.state === 'stop') {
-			cur_song_progess_el.value = 0;
-			cur_song_progess_el.disabled = true;
-		}
+	cur_song_progess_el.max = currentsong.duration;
+	cur_song_progess_el.value = status.elapsed;
+	init_progress(
+		cur_song_elapsed,
+		cur_song_progess_el,
+		cur_song_duration_el,
+		Number(status.elapsed),
+		Number(currentsong.duration)
+	);
+	if (status.state === 'stop') {
+		cur_song_progess_el.value = 0;
+		cur_song_progess_el.disabled = true;
 	}
 
 	const volume_slider = document.getElementById('volume_slider');
@@ -1129,26 +1144,6 @@ function set_param(key, value) {
 	window.history.replaceState(null, "", url.href);
 }
 
-function set_auto_update(value) {
-	if (value) { // Enable
-		if (! window.update_interval) {
-			clearInterval(window.update_interval);
-			window.update_interval = setInterval(refresh, REFRESH_INTERVAL);
-			refresh();
-			console.log('Created interval, ', window.update_interval);
-		}
-		set_param("auto", 1);
-
-	} else { // Disable
-		if (window.update_interval) {
-			console.log('Clearing interval, ', window.update_interval);
-			clearInterval(window.update_interval);
-		}
-		window.update_interval = null;
-		set_param("auto", 0);
-	}
-}
-
 function get_and_show_summary(field='artist', sort_by='playtime') {
 	display_modal(E("div", "Loading summary ..."));
 
@@ -1219,7 +1214,7 @@ function setup() {
 	// Progress meter and label
 	const progress_el = document.getElementById('cur_song_progress');
 	progress_el.addEventListener('change', (event) => {
-		post_json('seek', {time: event.target.value});
+		post_json('seek', {time: event.target.value}).then(() => refresh());
 	});
 
 	const elapsed_el = document.getElementById('cur_song_elapsed');
@@ -1283,13 +1278,6 @@ function setup() {
 	});
 
 	set_artist_mode('albumartist');
-
-	// Auto update
-	const auto_update_input = document.getElementById('auto_update_input');
-	if (params.has("auto")) {
-		auto_update_input.checked = params.get("auto") == "1";
-	}
-	set_auto_update(auto_update_input.checked);
 
 	// Display Mode
 	if (params.has("mode")) {
