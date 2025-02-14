@@ -484,11 +484,11 @@ def url_playlists_playlist_track(playlist, file, *, client, path, query):
 def url_artists(style, *, client, path, query):
     artist_type = f"{style}artist"
     list_func = api.list_albumartists if style == "album" else api.list_artists
-    random_link = html_link("<span title='random'>↝</span>", "_random")
     return create_list_page(
-        artist_type.title() + " " + random_link,
+        artist_type.title(),
         None,
-        ["<li>" + html_link(a, a) + "</li>" for a in list_func(client)],
+        ["<li><em>" + html_link("Random", "_random") + "</em></li>"]
+        + ["<li>" + html_link(a, a) + "</li>" for a in list_func(client)],
     )
 
 
@@ -499,12 +499,12 @@ def url_artists_artist(style, artist, *, client, path, query):
         artist = random.choice(client.list(artist_type))[artist_type]
 
     return create_list_page(
-        [html_link(artist_type.title(), ".."), artist],
+        [html_link(artist_type.title(), ".."), f"Random: {artist}" if is_random else artist],
         {"artist": artist},
         [
-            "<li>"
+            "<li><em>"
             + html_link("All", ("..", artist, "_all") if is_random else "_all")
-            + "</li>",
+            + "</em></li>",
             *[
                 "<li>" + html_link(a, ("..", artist, a) if is_random else a) + "</li>"
                 for a in api.list_albums(client, {artist_type: artist})
@@ -553,9 +553,10 @@ def url_artists_artist_album_track(style, artist, album, file, *, client, path, 
 def url_albums(*, client, path, query):
     albums = [a["album"] for a in client.list("album")]
     return create_list_page(
-        "Albums " + html_link("<span title='random'>↝</span>", "_random"),
+        "Albums",
         {},
-        ["<li>" + html_link(a, a) + "</li>" for a in albums],
+        ["<li><em>" + html_link("Random", "_random") + "</em></li>"]
+        + ["<li>" + html_link(a, a) + "</li>" for a in albums],
     )
 
 
@@ -566,7 +567,7 @@ def url_albums_album(album, *, client, path, query):
 
     data = {"album": album}
     return create_list_page(
-        [html_link("Albums", ".."), album],
+        [html_link("Albums", ".."), f"Random: {album}" if is_random else album],
         data,
         [
             f"<li value='{a['track']}'>"
