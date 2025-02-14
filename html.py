@@ -527,7 +527,7 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
     }
 
     def sort_func(a):
-        return a["title"] if all_tracks else int(a["track"])
+        return a["title"] if all_tracks or not a["track"] else int(a["track"])
 
     thelist = []
     for a in sorted(api.list_titles(client, data), key=sort_func):
