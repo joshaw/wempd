@@ -386,7 +386,7 @@ def url_queue(*, client, path, query):
     thelist = [
         f"<h2>Queue ({len(queue)})</h2>",
         html_form_link("/mpd/api/clear", {}, "Clear queue"),
-        "<ol>",
+        "<table>",
     ]
     for index, song in enumerate(queue):
         artist = song.get("albumartist", song.get("artist", ""))
@@ -398,23 +398,18 @@ def url_queue(*, client, path, query):
 
         song_link = html_link(title, str(index), folder=False)
 
-        current = "current" in song
-
         play_now = ""
         if not current:
-            play_now = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play now")
+            play_now = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play")
 
-        thelist.append(
-            f"<li value='{index}' {'id=current' if current else ''}>"
-            + "<br/>".join(
-                [
-                    song_link + " " + play_now,
-                    f"{artist} - {album}",
-                ]
-            )
-            + "</li>"
-        )
-    thelist.append("</ol>")
+        thelist.append("".join([
+            f"<tr {'id=current' if 'current' in song else ''}>",
+            f"<td>{index}</td>",
+            f"<td>{play_now}</td>",
+            f"<td>{song_link}<br>{artist} - {album}</td>",
+            "</tr>",
+        ]))
+    thelist.append("</table>")
     return thelist
 
 
