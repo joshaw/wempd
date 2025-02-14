@@ -1188,7 +1188,6 @@ function setup() {
 	getID('stop_button').innerHTML = stop_icon;
 	getID('prev_button').innerHTML = prev_icon;
 	getID('next_button').innerHTML = next_icon;
-	getID('auto_update_button').innerHTML = refresh_icon;
 	getID('cur_song_info').innerHTML = info_icon;
 	getID('volume_down').innerHTML = down_icon;
 	getID('volume_up').innerHTML = up_icon;
