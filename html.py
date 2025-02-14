@@ -37,6 +37,8 @@ def get_header(client, path):
             else html_link(text, ("mpd", name), root=True, folder=folder)
         )
 
+    status = client.status()
+
     return [
         """<!DOCTYPE html>
         <head>
@@ -101,11 +103,17 @@ def get_header(client, path):
                 html_form_link(
                     "/mpd/api/pause",
                     {},
-                    "Pause" if client.status()["state"] == "play" else "Play",
+                    "Pause" if status["state"] == "play" else "Play",
                 ),
                 html_form_link("/mpd/api/previous", {}, "Prev"),
                 html_form_link("/mpd/api/next", {}, "Next"),
-                "<form action='/mpd/search'><input name='s'/> <input type='submit' value='Search' /></form>",
+                "&nbsp;Vol: ",
+                status.get("volume", "unknown"),
+                html_form_link("/mpd/api/volume", {"volume": -5}, f"-5"),
+                html_form_link("/mpd/api/volume", {"volume": -1}, f"-1"),
+                html_form_link("/mpd/api/volume", {"volume": 1}, f"+1"),
+                html_form_link("/mpd/api/volume", {"volume": 5}, f"+5"),
+                #"<form action='/mpd/search'><input name='s'/> <input type='submit' value='Search' /></form>",
             ]
         ),
         "</div><div class='hscroll'>",
