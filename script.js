@@ -197,6 +197,10 @@ function E(tag, attributes, children) {
 	return elem
 }
 
+function getID(id) {
+	return document.getElementById(id)
+}
+
 function parseHTML(html) {
 	const template = document.createElement('template');
 	template.innerHTML = html.trim();
@@ -212,7 +216,7 @@ function create_table_row(cells, is_header) {
 function highlight(what) {
 	for (const type in what) {
 		const value = what[type];
-		const list = document.getElementById(type + '-list');
+		const list = getID(type + '-list');
 		for (const a of list.children) {
 			if (a.innerText === value) {
 				remove_class_add(list, a, 'selected');
@@ -225,7 +229,7 @@ function highlight(what) {
 
 // Interface functions ////////////////////////////////////////////////////////
 function show_error(msg) {
-	const error_el = document.getElementById('error-message');
+	const error_el = getID('error-message');
 	error_el.textContent = msg;
 	error_el.style.display = 'inherit';
 
@@ -236,26 +240,25 @@ function show_error(msg) {
 }
 
 function draw_context_menu(x, y, items) {
-	const cmenu = document.getElementById('context_menu');
+	const cmenu = getID('context_menu');
 	cmenu.replaceChildren(...items.map(item => E('p', {onclick: item.command}, item.title)));
-
-	cmenu.style.display = 'initial';
-	cmenu.style.left = x + 'px';
-	cmenu.style.top = y + 'px';
 
 	const win_width = window.innerWidth;
 	const win_height = window.innerHeight;
 	const cmenu_width = cmenu.offsetWidth;
 	const cmenu_height = cmenu.offsetHeight;
-
 	if (y + cmenu_height > win_height)
 		cmenu.style.top = (win_height - cmenu_height) + 'px';
 	if (x + cmenu_width > win_width)
 		cmenu.style.left = (win_width - cmenu_width) + 'px';
+
+	cmenu.style.left = x + 'px';
+	cmenu.style.top = y + 'px';
+	cmenu.style.display = 'initial';
 }
 
 function hide_context_menu() {
-	const cmenu = document.getElementById('context_menu');
+	const cmenu = getID('context_menu');
 	cmenu.style.display = 'none';
 	cmenu.replaceChildren();
 }
@@ -263,7 +266,7 @@ function hide_context_menu() {
 function notify(content, icon) {
 	const new_p = E('p', {class: "hflex"}, [parseHTML(icon), content])
 
-	const logger = document.getElementById('logger');
+	const logger = getID('logger');
 	logger.insertBefore(new_p, logger.firstElementChild);
 
 	new_p.addEventListener('click', () => {
@@ -278,25 +281,25 @@ function notify(content, icon) {
 }
 
 function display_modal(content) {
-	const modal = document.getElementById('modal');
+	const modal = getID('modal');
 	modal.replaceChildren(
 		E('div', {class: "modal_content"}, content),
 		E('button', {class: "close_button", onclick: hide_modal}, parseHTML('&#x2A2F')),
 	);
 	modal.style.display = 'flex';
 
-	document.getElementById('modal_background').style.display = 'initial';
+	getID('modal_background').style.display = 'initial';
 }
 
 function hide_modal(event) {
 	if (event?.type === 'keyup' && event?.key !== 'Escape')
 		return;
 
-	const modal = document.getElementById('modal');
+	const modal = getID('modal');
 	modal.style.display = 'none';
 	modal.replaceChildren();
 
-	document.getElementById('modal_background').style.display = 'none';
+	getID('modal_background').style.display = 'none';
 }
 
 function get_info_panel(info) {
@@ -346,7 +349,7 @@ function get_info_panel(info) {
 	]);
 
 	if (window.currentsong.album === info.album && albumart) {
-		const albumart = document.getElementById('albumart').cloneNode();
+		const albumart = getID('albumart').cloneNode();
 		albumart.style.float = 'left';
 		albumart.style.maxWidth = '300px';
 		albumart.style.paddingRight = '10px';
@@ -405,7 +408,7 @@ function get_and_show_stats(do_auto_refresh=true) {
 
 		if (do_auto_refresh)
 			wait(2000).then(() => {
-				if (document.getElementById('stats_table'))
+				if (getID('stats_table'))
 					get_and_show_stats();
 			});
 	});
@@ -453,32 +456,29 @@ function populate_song_info(all_status) {
 	}
 
 	// Title
-	document.getElementById('cur_title').replaceChildren(currentsong.title
+	getID('cur_title').replaceChildren(currentsong.title
 		? E('a', {href: '#', onclick: () => locate_title(currentsong)}, currentsong.title)
 		: currentsong.name || currentsong.file || ""
 	);
 
 	// Album
-	document.getElementById('cur_album').replaceChildren(currentsong.album
+	getID('cur_album').replaceChildren(currentsong.album
 		? E('a', {href: '#', onclick: () => locate_album(currentsong)}, currentsong.album)
 		: ""
 	);
 
 	// Artist
-	document.getElementById('cur_artist').replaceChildren(artist_links(currentsong));
+	getID('cur_artist').replaceChildren(artist_links(currentsong));
+	getID('cur_song_info').onclick = () => { show_info_panel(currentsong); };
 
-	const cur_song_info = document.getElementById('cur_song_info');
-	cur_song_info.onclick = () => { show_info_panel(currentsong); };
-
-	const cur_song_elapsed = document.getElementById('cur_song_elapsed');
+	const cur_song_elapsed = getID('cur_song_elapsed');
 	cur_song_elapsed.textContent = format_secs(status.elapsed);
 
-	const cur_song_duration_el = document.getElementById('cur-song-duration');
+	const cur_song_duration_el = getID('cur-song-duration');
 	cur_song_duration_el.textContent = "-" + format_secs(status.duration - status.elapsed);
 
-	const cur_song_progess_el = document.getElementById('cur_song_progress');
-	cur_song_progess_el.value = status.elapsed;
-	cur_song_progess_el.max = currentsong.duration;
+	window.state = status.state;
+	const cur_song_progess_el = getID('cur_song_progress');
 
 	cur_song_progess_el.max = currentsong.duration;
 	cur_song_progess_el.value = status.elapsed;
@@ -494,9 +494,9 @@ function populate_song_info(all_status) {
 		cur_song_progess_el.disabled = true;
 	}
 
-	const volume_slider = document.getElementById('volume_slider');
-	const volume_down = document.getElementById('volume_down');
-	const volume_up = document.getElementById('volume_up');
+	const volume_slider = getID('volume_slider');
+	const volume_down = getID('volume_down');
+	const volume_up = getID('volume_up');
 	if (status.volume) {
 		volume_slider.value = status.volume;
 		volume_slider.disabled = false;
@@ -509,16 +509,12 @@ function populate_song_info(all_status) {
 		volume_up.disabled = true;
 	}
 
-	const volume_label = document.getElementById('volume_label');
-	volume_label.textContent = status.volume;
-
-	const pause_button = document.getElementById('pause_button');
-	pause_button.innerHTML = status.state === 'play' ? pause_icon : play_icon;
-
-	document.getElementById('repeat_value').checked = (status.repeat === '1');
-	document.getElementById('random_value').checked = (status.random === '1');
-	document.getElementById('single_value').checked = (status.single === '1');
-	document.getElementById('consume_value').checked = (status.consume === '1');
+	getID('volume_label').textContent = status.volume;
+	getID('pause_button').innerHTML = status.state === 'play' ? pause_icon : play_icon;
+	getID('repeat_value').checked = (status.repeat === '1');
+	getID('random_value').checked = (status.random === '1');
+	getID('single_value').checked = (status.single === '1');
+	getID('consume_value').checked = (status.consume === '1');
 }
 
 // TODO: move
@@ -581,8 +577,8 @@ function get_and_show_outputs() {
 }
 
 function update_search_results(results) {
-	document.getElementById('search-summary').innerText = `Results (${results.length})`;
-	document.getElementById('results-table').replaceChildren(...populate_search_results(results));
+	getID('search-summary').innerText = `Results (${results.length})`;
+	getID('results-table').replaceChildren(...populate_search_results(results));
 }
 
 function show_search_results(results, query) {
@@ -694,7 +690,7 @@ function locate_title(song) {
 }
 
 function clear_titles() {
-	document.getElementById('title-list').replaceChildren();
+	getID('title-list').replaceChildren();
 }
 
 function get_titles(what, opts={}) {
@@ -711,8 +707,7 @@ function get_titles(what, opts={}) {
 }
 
 function populate_titles(titles) {
-	const list_div = document.getElementById('title-list');
-	populate_list(titles, list_div, {
+	populate_list(titles, getID('title-list'), {
 		display_ALL: false,
 		item_text: (info) => info.title || info.name || info.file || 'No name',
 		info_selector: (info) => info,
@@ -738,7 +733,7 @@ function locate_album(song) {
 }
 
 function clear_albums() {
-	document.getElementById('album-list').replaceChildren();
+	getID('album-list').replaceChildren();
 }
 
 function locate_playlist(name) {
@@ -814,7 +809,7 @@ function playlist_info_display(info) {
 }
 
 function populate_albums(artist, albums) {
-	const list_div = document.getElementById('album-list');
+	const list_div = getID('album-list');
 
 	if (window.display_mode === 'playlists') {
 		populate_list(albums, list_div, {
@@ -844,7 +839,7 @@ function locate_artist(song) {
 }
 
 function random_artist() {
-	const list = document.getElementById('artist-list').children;
+	const list = getID('artist-list').children;
 	const item = list[Math.floor(Math.random() * list.length)].innerText;
 	highlight({artist: item});
 }
@@ -856,7 +851,7 @@ function locate_albumartist(song) {
 }
 
 function clear_artists() {
-	document.getElementById('artist-list').replaceChildren();
+	getID('artist-list').replaceChildren();
 }
 
 function get_artists() {
@@ -871,7 +866,7 @@ function get_artists() {
 }
 
 function populate_artists(artists) {
-	populate_list(artists, document.getElementById('artist-list'), {
+	populate_list(artists, getID('artist-list'), {
 		display_ALL: true,
 		onclick_all: () => get_albums({}),
 		info_display: album_artist_info_display,
@@ -887,7 +882,7 @@ function move_song(from_id, to_pos) {
 }
 
 function populate_queue(queue) {
-	document.getElementById('queue').replaceChildren(
+	getID('queue').replaceChildren(
 		create_table_row(['', 'Title', 'Album', 'Artist', 'Length'], true),
 		...queue.map(song => E('tr', {class: song.current ? 'current' : null}, [
 			E('td', song.track || ''),
@@ -974,7 +969,7 @@ function set_display_mode(mode) {
 	switch (mode) {
 		case 'playlists':
 		case 'library':
-			document.getElementById(`${mode}_mode`).checked = true;
+			getID(`${mode}_mode`).checked = true;
 			break;
 		default:
 			throw new Error(mode);
@@ -1059,8 +1054,8 @@ function next() { post_json('next').then(refresh); }
 function prev() { post_json('prev').then(refresh); }
 
 function adjust_volume(change) {
-	const volume_slider = document.getElementById("volume_slider");
-	const volume_label = document.getElementById("volume_label");
+	const volume_slider = getID("volume_slider");
+	const volume_label = getID("volume_label");
 	volume_slider.value = Number(volume_slider.value) + change;
 	volume_label.textContent = volume_slider.value;
 
@@ -1072,7 +1067,7 @@ function adjust_volume(change) {
 }
 
 function set_albumart(blob) {
-	const img = document.getElementById('albumart');
+	const img = getID('albumart');
 	if (blob) {
 		const objurl = URL.createObjectURL(blob);
 		img.src = objurl;
@@ -1189,61 +1184,56 @@ function setup() {
 	// Only called on page init
 	const params = new URLSearchParams(window.location.search);
 
-	document.getElementById('pause_button').innerHTML = pause_icon;
-	document.getElementById('stop_button').innerHTML = stop_icon;
-	document.getElementById('prev_button').innerHTML = prev_icon;
-	document.getElementById('next_button').innerHTML = next_icon;
-	document.getElementById('auto_update_button').innerHTML = refresh_icon;
-	document.getElementById('cur_song_info').innerHTML = info_icon;
-	document.getElementById('volume_down').innerHTML = down_icon;
-	document.getElementById('volume_up').innerHTML = up_icon;
-	document.getElementById('single_label').innerHTML = single_icon + ' Single';
-	document.getElementById('random_label').innerHTML = random_icon + ' Random';
-	document.getElementById('repeat_label').innerHTML = repeat_icon + ' Repeat';
-	document.getElementById('consume_label').innerHTML = consume_icon + ' Consume';
+	getID('pause_button').innerHTML = pause_icon;
+	getID('stop_button').innerHTML = stop_icon;
+	getID('prev_button').innerHTML = prev_icon;
+	getID('next_button').innerHTML = next_icon;
+	getID('auto_update_button').innerHTML = refresh_icon;
+	getID('cur_song_info').innerHTML = info_icon;
+	getID('volume_down').innerHTML = down_icon;
+	getID('volume_up').innerHTML = up_icon;
+	getID('single_label').innerHTML = single_icon + ' Single';
+	getID('random_label').innerHTML = random_icon + ' Random';
+	getID('repeat_label').innerHTML = repeat_icon + ' Repeat';
+	getID('consume_label').innerHTML = consume_icon + ' Consume';
 
 	window.addEventListener('keyup', hide_modal);
-	document.getElementById('modal_background').addEventListener('click', hide_modal);
+	getID('modal_background').addEventListener('click', hide_modal);
 
 	// Album art view
-	const albumart = document.getElementById('albumart');
-	albumart.addEventListener('click', () => {
-		show_info_panel(currentsong);
-	});
+	getID('albumart').addEventListener('click', () => show_info_panel(currentsong));
 
 	// Progress meter and label
-	const progress_el = document.getElementById('cur_song_progress');
+	const progress_el = getID('cur_song_progress');
 	progress_el.addEventListener('change', (event) => {
 		post_json('seek', {time: event.target.value}).then(() => refresh());
 	});
 
-	const elapsed_el = document.getElementById('cur_song_elapsed');
 	progress_el.addEventListener('input', (event) => {
-		elapsed_el.textContent = format_secs(event.target.value);
+		progress_marker++;
+		getID('cur_song_elapsed').textContent = format_secs(event.target.value);
 	});
 
 	// Volume Slider and label
-	const volume_slider = document.getElementById('volume_slider');
+	const volume_slider = getID('volume_slider');
 	volume_slider.addEventListener('change', (event) => {
 		post_json('volume', {setvol: event.target.value});
 	});
 
-	const volume_label = document.getElementById('volume_label');
 	volume_slider.addEventListener('input', (event) => {
-		volume_label.textContent = event.target.value;
+		getID('volume_label').textContent = event.target.value;
 	});
 
-	document.getElementById('volume_down').addEventListener('click', (event) => {
+	getID('volume_down').addEventListener('click', (event) => {
 		adjust_volume(event.shiftKey ? -5 : -1);
 	});
 
-	document.getElementById('volume_up').addEventListener('click', (event) => {
+	getID('volume_up').addEventListener('click', (event) => {
 		adjust_volume(event.shiftKey ? +5 : +1);
 	});
 
 	// Search form
-	const search_form = document.getElementById('search_form');
-	search_form.addEventListener('submit', (e) => {
+	getID('search_form').addEventListener('submit', (e) => {
 		e.preventDefault();
 		const query = e.target.elements.query.value;
 		if (!query || query.length === 0) { return; }
@@ -1252,8 +1242,7 @@ function setup() {
 	});
 
 	// Add form
-	const add_form = document.getElementById('add_form');
-	add_form.addEventListener('submit', (e) => {
+	getID('add_form').addEventListener('submit', (e) => {
 		e.preventDefault();
 		const entry = e.target.elements.entry.value;
 		if (entry.length > 0) {
@@ -1266,8 +1255,7 @@ function setup() {
 	});
 
 	// Save form
-	const save_form = document.getElementById('save_form');
-	save_form.addEventListener('submit', (e) => {
+	getID('save_form').addEventListener('submit', (e) => {
 		e.preventDefault();
 		const entry = e.target.elements.entry.value;
 		if (entry.length > 0) {
@@ -1288,8 +1276,8 @@ function setup() {
 	}
 
 	// Support resizing the queue.
-	const resizer = document.getElementById("resizer");
-	const queue = document.getElementById("queue_wrapper");
+	const resizer = getID("resizer");
+	const queue = getID("queue_wrapper");
 
 	function resize(e) {
 		const queue_bottom = queue.getBoundingClientRect().bottom;
