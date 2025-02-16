@@ -8,6 +8,9 @@ from urllib.parse import quote_plus, unquote_plus, urlencode
 import api
 
 
+BASE_MUSIC_URL = os.getenv("WEMPD_BASE_MUSIC_URL")
+
+
 def html_link(text, href, root=False, folder=True):
     if isinstance(href, str):
         href = (href,)
@@ -190,9 +193,7 @@ def song_info_table(song_info, minimal=False):
         elif key == "album":
             href = ("mpd", "albums", value)
         elif key == "title" and minimal:
-            value = html_link(
-                value, ("mpd", "file", song_info["file"]), root=True, folder=False
-            )
+            href = ("mpd", "title", value)
         elif key == "genre":
             value = " / ".join(
                 [
@@ -201,10 +202,10 @@ def song_info_table(song_info, minimal=False):
                 ]
             )
         elif key == "file":
-            if value.startswith("http"):
+            if value.startswith("http://") or value.startswith("https://"):
                 href = value
-            elif base_url := os.getenv("WEMPD_BASE_MUSIC_URL"):
-                href = (base_url.rstrip("/"), value)
+            else:
+                value = html_link(value, ("mpd", "file", value), root=True, folder=False)
         elif key == "originaldate":
             href = ("mpd", "dates", value)
         elif key == "label":
@@ -678,19 +679,9 @@ def url_labels_label(label, *, client, path, query):
 
 def url_file(file, *, client, path, query):
     song_info = client.find("file", file)[0]
-    header = [
-        html_link("Artists", ("mpd", "artists"), root=True),
-        html_link(
-            song_info["artist"], ("mpd", "artists", song_info["artist"]), root=True
-        ),
-        html_link(
-            song_info["album"],
-            ("mpd", "artists", song_info["artist"], song_info["album"]),
-            root=True,
-        ),
-        song_info["title"],
-    ]
-    return create_page(header, {"file": file}, song_info_table(song_info))
+    header = ["file://" + file]
+    link = ["File: ", html_link(file, (BASE_MUSIC_URL, file))]
+    return create_page(header, {"file": file}, song_info_table(song_info)) + link
 
 
 def url_add_trailing_slash(*parts, client, path, query):
