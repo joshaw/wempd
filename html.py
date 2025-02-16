@@ -540,9 +540,9 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
 
     thelist = []
     for a in sorted(api.list_titles(client, data), key=sort_func):
-        value = a["track"]
+        value = f"value='{a['track']}'" if a.get('track') else ""
         link = html_link(a["title"], a["file"], folder=False)
-        thelist.append(f"<li value='{value}'>{link}</li>")
+        thelist.append(f"<li {value}>{link}</li>")
 
     return create_list_page(header, data, thelist, style="ul" if all_tracks else "ol")
 
