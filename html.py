@@ -59,6 +59,7 @@ def get_header(client, path):
             font-family: sans-serif;
         }
         div { line-height: 2em; }
+        li { line-height: 1.2; }
         form { display: inline-block; }
         table td:first-child {
             font-weight: bold;
