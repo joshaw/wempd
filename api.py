@@ -81,18 +81,8 @@ def list_albums(client, query):
 
 
 def simplify_title_list(titles):
-    return [
-        {
-            "track": s.get("track"),
-            "title": s.get("title"),
-            "name": s.get("name"),
-            "file": s.get("file"),
-            "artist": s.get("artist"),
-            "albumartist": s.get("albumartist"),
-            "album": s.get("album"),
-        }
-        for s in titles
-    ]
+    keys = ("track", "title", "name", "file", "artist", "albumartist", "album")
+    return [ { key : value for (key, value) in s.items() if key in keys } for s in titles ]
 
 
 def list_titles(client, query):
