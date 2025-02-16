@@ -475,7 +475,10 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
         if not name:
             name = song.get("file")
         link = html_link(name, song["file"], folder=False)
-        thelist.append(f"<li>{artist} - {link}</li>")
+        if artist:
+            thelist.append(f"<li>{artist} - {link}</li>")
+        else:
+            thelist.append(f"<li>{link}</li>")
     return create_list_page(header, data, thelist)
 
 
