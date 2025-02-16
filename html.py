@@ -401,6 +401,7 @@ def url_queue(*, client, path, query):
         if not title or len(title) <= 1:
             title = song.get("name", song.get("file", "??"))
 
+        current = "id='current'" if "current" in song else ""
         song_link = html_link(title, str(index), folder=False)
 
         play_now = ""
@@ -408,7 +409,7 @@ def url_queue(*, client, path, query):
             play_now = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play")
 
         thelist.append("".join([
-            f"<tr {'id=current' if 'current' in song else ''}>",
+            f"<tr {current}>",
             f"<td>{index}</td>",
             f"<td>{play_now}</td>",
             f"<td>{song_link}<br>{artist} - {album}</td>",
