@@ -11,6 +11,14 @@ import api
 BASE_MUSIC_URL = os.getenv("WEMPD_BASE_MUSIC_URL")
 
 
+def esc(s):
+    s = s.replace("&", "&amp;")
+    s = s.replace("<", "&lt;")
+    s = s.replace(">", "&gt;")
+    s = s.replace('"', "&quot;")
+    s = s.replace('\'', "&#x27;")
+    return s
+
 def html_link(text, href, root=False, folder=True):
     if isinstance(href, str):
         href = (href,)
@@ -19,7 +27,7 @@ def html_link(text, href, root=False, folder=True):
     else:
         href = "/".join((quote_plus(h) for h in href))
         href = f"{'/' if root else './'}{href}{'/' if folder else ''}"
-    return f"<a href='{href}'>{text}</a>"
+    return f"<a href='{esc(href)}'>{esc(text)}</a>"
 
 
 def html_form_link(href, data, text):
@@ -447,7 +455,7 @@ def url_search(*, client, path, query):
             href = ("artists", song["artist"], song["album"], song["file"])
             thelist.append(
                 "<li>"
-                + f"{song['artist']} - {song['album']} - "
+                + esc(f"{song['artist']} - {song['album']} - ")
                 + html_link(song["title"], href, folder=False)
                 + "</li>"
             )
