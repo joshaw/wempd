@@ -182,6 +182,13 @@ def get_display(song):
     return artist, name
 
 
+def get_refresh(status):
+    if status["state"] == "play" and float(status.get("duration", "0")) > 0:
+        remaining = float(status["duration"]) - float(status["elapsed"])
+        return {"refresh": int(remaining + 1)}
+    return {}
+
+
 def song_info_table(song_info, minimal=False):
     thelist = ["<table>"]
     links = []
@@ -330,11 +337,6 @@ def url_status(*, client, path, query):
         value = icon_tick if enabled else icon_cross
         return [f"<tr><td>{title}</td><td>{value}</td><td>{button}</td></tr>"]
 
-    refresh = {}
-    if status["state"] == "play" and "duration" in status:
-        remaining = float(status["duration"]) - float(status["elapsed"])
-        refresh = {"refresh": int(remaining + 1)}
-
     volume = status.get("volume", "unknown")
     outputs = client.outputs()
     return [
@@ -377,7 +379,7 @@ def url_status(*, client, path, query):
             ]
         ),
         "</p>",
-    ], refresh
+    ], get_refresh(status)
 
 
 def url_stats(*, client, path, query):
@@ -399,12 +401,7 @@ def url_stats(*, client, path, query):
 
 
 def url_current(*, client, path, query):
-    status = client.status()
-    refresh = {}
-    if status["state"] == "play":
-        remaining = float(status["duration"]) - float(status["elapsed"])
-        refresh = {"refresh": int(remaining + 1)}
-    return ["<h2>Current Song</h2>"] + song_info_table(client.currentsong()), refresh
+    return ["<h2>Current Song</h2>"] + song_info_table(client.currentsong()), get_refresh(client.status())
 
 
 def url_queue(*, client, path, query):
