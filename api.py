@@ -148,7 +148,6 @@ def insert(client, query, append=False):
     count = 0
     if "playlist" in query:
         if append:
-            print(query)
             client.load(query["playlist"])
         else:
             playlist = client.listplaylist(query["playlist"])
