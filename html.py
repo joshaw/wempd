@@ -119,14 +119,8 @@ def get_header(client, path):
             vertical-align: text-top;
         }
         #current {
-            border-left: solid 1px;
-            padding-left: 0.5em;
             font-weight: bold;
             background: #f0f0f0;
-        }
-        .hscroll {
-            white-space: nowrap;
-            overflow: scroll;
         }
         </style>
         <script>
@@ -167,7 +161,6 @@ def get_header(client, path):
                     html_form_link("/mpd/api/volume", {"volume": 5}, f"+5"),
                 ]
             ),
-            class_="hscroll",
         ),
         div(
             " | ".join(
@@ -179,7 +172,6 @@ def get_header(client, path):
                     link("Playlists", "/playlists/", "playlists"),
                 ]
             ),
-            class_="hscroll",
         ),
     ]
 
