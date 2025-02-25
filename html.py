@@ -230,8 +230,19 @@ def song_info_table(song_info, minimal=False):
             href = ("mpd", "albumartists", value)
         elif key == "album":
             href = ("mpd", "albums", value)
-        elif key == "title" and minimal:
-            href = ("mpd", "title", value)
+        elif key == "title":
+            value = html_link(
+                value,
+                (
+                    "mpd",
+                    "albumartists",
+                    song_info["albumartist"],
+                    song_info["album"],
+                    song_info["file"],
+                ),
+                root=True,
+                folder=False,
+            )
         elif key == "genre":
             value = " / ".join(
                 [
