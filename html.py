@@ -373,7 +373,7 @@ def url_status(*, client, path, query):
         "<p><b>Library:</b>",
         html_link("stats", "stats", folder=False),
         "</p>",
-        "<p><b>Outputs:</b>",
+        f"<p><b>{html_link('Outputs', 'outputs')}:</b>",
         " ".join(
             [
                 f"[{output['outputname']}]"
@@ -400,6 +400,32 @@ def url_stats(*, client, path, query):
         "<tr><td>&nbsp;</td></tr>",
         f"<tr><td>DB Play time</td><td>{fmt_duration(int(stats['db_playtime']))}</td></tr>",
         f"<tr><td>DB updated</td><td>{fmt_date(int(stats['db_update']))}</td></tr>",
+        "</table>",
+    ]
+
+
+def url_outputs(*, client, path, query):
+    def toggle(output):
+        enabled = output["outputenabled"] == "1"
+        return html_form_link(
+            f"/mpd/api/{'disableoutput' if enabled else 'enableoutput'}",
+            {"outputid": output["outputid"]},
+            "disable" if enabled else "enable"
+        )
+
+    return [
+        "<h2>Outputs</h2>",
+        "<table>",
+        *[
+            "".join([
+                "<tr>"
+                f"<td>{o['outputname']}</td>",
+                f"<td>{o['plugin']}</td>",
+                f"<td>{icon_tick if o['outputenabled'] == '1' else icon_cross}</td>",
+                f"<td>{toggle(o)}</td>",
+                "</tr>",
+            ]) for o in client.outputs()
+        ],
         "</table>",
     ]
 
@@ -725,6 +751,8 @@ matcher = {
     "/queue": url_add_trailing_slash,
     "/queue/": url_queue,
     "/queue/([0-9]+)": url_queue_item,
+    "/outputs": url_add_trailing_slash,
+    "/outputs/": url_outputs,
     "/search": url_search,
     "/search/": url_remove_trailing_slash,
     "/playlists": url_add_trailing_slash,
