@@ -171,6 +171,17 @@ def create_list_page(header, data, thelist, style="ul"):
     return create_page(header, data, thelist)
 
 
+def get_display(song):
+    artist = song.get("albumartist", song.get("artist", ""))
+    name = song.get("title")
+    if not name or len(name) <= 1:
+        name = song.get("name")
+    if not name or len(name) <= 1:
+        name = song["file"]
+
+    return artist, name
+
+
 def song_info_table(song_info, minimal=False):
     thelist = ["<table>"]
     links = []
@@ -404,12 +415,8 @@ def url_queue(*, client, path, query):
         "<table>",
     ]
     for index, song in enumerate(queue):
-        artist = song.get("albumartist", song.get("artist", ""))
         album = song.get("album", "")
-        title = song.get("title")
-
-        if not title or len(title) <= 1:
-            title = song.get("name", song.get("file", "??"))
+        artist, title = get_display(song)
 
         current = "id='current'" if "current" in song else ""
         song_link = html_link(title, str(index), folder=False)
@@ -478,12 +485,7 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
     data = {"playlist": playlist_name}
     thelist = []
     for song in api.list_titles(client, {"playlist": playlist_name}):
-        artist = song.get("albumartist", song.get("artist", ""))
-        name = song.get("title")
-        if not name:
-            name = song.get("name")
-        if not name:
-            name = song.get("file")
+        artist, name = get_display(song)
         link = html_link(name, song["file"], folder=False)
         if artist:
             thelist.append(f"<li>{artist} - {link}</li>")
