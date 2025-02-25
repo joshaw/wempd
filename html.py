@@ -10,6 +10,8 @@ import api
 
 BASE_MUSIC_URL = os.getenv("WEMPD_BASE_MUSIC_URL")
 
+icon_tick = "✓"
+icon_cross = "✗"
 
 def esc(s):
     s = s.replace("&", "&amp;")
@@ -314,7 +316,7 @@ def url_status(*, client, path, query):
             {"enabled": "0" if enabled else "1"},
             "disable" if enabled else "enable",
         )
-        value = "✓" if enabled else "✗"
+        value = icon_tick if enabled else icon_cross
         return [f"<tr><td>{title}</td><td>{value}</td><td>{button}</td></tr>"]
 
     refresh = {}
