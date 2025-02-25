@@ -132,7 +132,6 @@ def get_header(client, path):
                 html_form_link("/mpd/api/volume", {"volume": -1}, f"-1"),
                 html_form_link("/mpd/api/volume", {"volume": 1}, f"+1"),
                 html_form_link("/mpd/api/volume", {"volume": 5}, f"+5"),
-                #"<form action='/mpd/search'><input name='s'/> <input type='submit' value='Search' /></form>",
             ]
         ),
         "</div><div class='hscroll'>",
@@ -385,6 +384,12 @@ def url_status(*, client, path, query):
             ]
         ),
         "</p>",
+        "<p><form action='/mpd/search'>",
+        "<input name='s' placeholder='Search term'/> <input type='submit' value='Search' />"
+        "</form></p>",
+        "<p><form action='/mpd/api/add' method='post'>",
+        "<input name='entry' placeholder='Add to queue'/> <input type='submit' value='Add' />"
+        "</form></p>",
     ], get_refresh(status)
 
 
