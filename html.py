@@ -25,6 +25,8 @@ def esc(s):
 
 def tag_factory(name):
     def __tag(*children, **attrs):
+        if len(children) == 1 and isinstance(children[0], list):
+            children = children[0]
         attrs = " ".join(f'{k}="{v}"' for k, v in attrs.items())
         return f"<{name} {attrs}>{''.join(children)}</{name}>"
 
@@ -185,6 +187,8 @@ def get_header(client, path):
 def create_page(header, data, thelist):
     if not isinstance(header, str):
         header = " / ".join(header)
+    if not isinstance(thelist, list):
+        thelist = [thelist]
     lines = [h2(header)]
     if data:
         lines.append(
@@ -195,10 +199,6 @@ def create_page(header, data, thelist):
         )
     lines.extend(thelist)
     return lines
-
-
-def create_list_page(header, data, thelist, numbered=False):
-    return create_page(header, data, [ol(*thelist) if numbered else ul(*thelist)])
 
 
 def get_display(song):
@@ -383,7 +383,7 @@ def url_status(*, client, path, query):
                 td(volume),
                 td(
                     *[
-                        html_form_link("/mpd/api/volume", {"volume": c}, f"{c:+}")
+                        html_form_link("/mpd/api/volume", {"volume": c}, f"{c:+}") + " "
                         for c in (-10, -5, -1, 1, 5, 10)
                     ]
                 ),
@@ -419,6 +419,7 @@ def url_status(*, client, path, query):
         p(
             form(
                 input_(name="s", placeholder="Search term"),
+                " ",
                 input_(type="submit", value="Search"),
                 action="/mpd/search",
             )
@@ -426,6 +427,7 @@ def url_status(*, client, path, query):
         p(
             form(
                 input_(name="entry", placeholder="Add to queue"),
+                " ",
                 input_(type="submit", value="Add"),
                 action="/mpd/api/add",
                 method="post",
@@ -542,15 +544,15 @@ def url_search(*, client, path, query):
                     html_link(song["title"], href, folder=False),
                 )
             )
-    return create_list_page("Search Results", None, thelist)
+    return create_page("Search Results", None, ul(thelist))
 
 
 def url_playlists(*, client, path, query):
     playlists = [p["playlist"] for p in client.listplaylists()]
-    return create_list_page(
+    return create_page(
         "Playlists",
         None,
-        [li(html_link(a, a)) for a in playlists],
+        ul([li(html_link(a, a)) for a in playlists]),
     )
 
 
@@ -565,7 +567,7 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
             thelist.append(li(f"{artist} - {link}"))
         else:
             thelist.append(li(link))
-    return create_list_page(header, data, thelist)
+    return create_page(header, data, ul(thelist))
 
 
 def url_playlists_playlist_track(playlist, file, *, client, path, query):
@@ -578,13 +580,13 @@ def url_playlists_playlist_track(playlist, file, *, client, path, query):
 
 def url_artists(style, *, client, path, query):
     list_func = api.list_albumartists if style == "album" else api.list_artists
-    return create_list_page(
+    return create_page(
         f"{style}artist".title(),
         None,
-        [
+        ul(
             li(em(html_link("Random", "_random"))),
             *[li(html_link(a, a)) for a in list_func(client)],
-        ],
+        ),
     )
 
 
@@ -594,19 +596,19 @@ def url_artists_artist(style, artist, *, client, path, query):
     if is_random:
         artist = random.choice(client.list(artist_type))[artist_type]
 
-    return create_list_page(
+    return create_page(
         [
             html_link(artist_type.title(), ".."),
             f"Random: {artist}" if is_random else artist,
         ],
         {"artist": artist},
-        [
+        ul(
             li(em(html_link("All", ("..", artist, "_all") if is_random else "_all"))),
             *[
                 li(html_link(a, ("..", artist, a) if is_random else a))
                 for a in api.list_albums(client, {artist_type: artist})
             ],
-        ],
+        ),
     )
 
 
@@ -631,7 +633,7 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
         link = html_link(a["title"], a["file"], folder=False)
         thelist.append(li(link, value=a["track"] if a.get("track") else ""))
 
-    return create_list_page(header, data, thelist, numbered=not all_tracks)
+    return create_page(header, data, ul(thelist) if all_tracks else ol(thelist))
 
 
 def url_artists_artist_album_track(style, artist, album, file, *, client, path, query):
@@ -648,13 +650,13 @@ def url_artists_artist_album_track(style, artist, album, file, *, client, path, 
 
 def url_albums(*, client, path, query):
     albums = [a["album"] for a in client.list("album")]
-    return create_list_page(
+    return create_page(
         "Albums",
         {},
-        [
+        ul(
             li(em(html_link("Random", "_random"))),
             *[li(html_link(a, a)) for a in albums],
-        ],
+        ),
     )
 
 
@@ -664,18 +666,18 @@ def url_albums_album(album, *, client, path, query):
         album = random.choice(client.list("album"))["album"]
 
     data = {"album": album}
-    return create_list_page(
+    thelist = [
+        li(
+            (f"{a['artist']} - " if is_random else "")
+            + html_link(a["title"], a["file"], folder=False),
+            value=a["track"],
+        )
+        for a in api.list_titles(client, data)
+    ]
+    return create_page(
         [html_link("Albums", ".."), f"Random: {album}" if is_random else album],
         data,
-        [
-            li(
-                (f"{a['artist']} - " if is_random else "")
-                + html_link(a["title"], a["file"], folder=False),
-                value=a["track"],
-            )
-            for a in api.list_titles(client, data)
-        ],
-        numbered=True,
+        ol(*thelist),
     )
 
 
@@ -694,65 +696,54 @@ def url_genres(*, client, path, query):
             genres.add(genre.strip())
     genres = sorted(list(genres))
 
-    return create_list_page(
-        "Genres",
-        None,
-        [li(html_link("None" if a == "" else a, a)) for a in genres],
-    )
+    thelist = [li(html_link("None" if a == "" else a, a)) for a in genres]
+    return create_page("Genres", None, ul(*thelist))
 
 
 def url_genres_genre(genre, *, client, path, query):
     query = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
-    return create_list_page(
-        [html_link("Genres", ".."), genre],
-        {"genre": genre},
-        [
-            li(
-                f"{a['artist']} - {a['album']} - "
-                + html_link(
-                    a["title"],
-                    ("mpd", "artists", a["artist"], a["album"], a["file"]),
-                    root=True,
-                    folder=False,
-                )
+    thelist = [
+        li(
+            f"{a['artist']} - {a['album']} - "
+            + html_link(
+                a["title"],
+                ("mpd", "artists", a["artist"], a["album"], a["file"]),
+                root=True,
+                folder=False,
             )
-            for a in client.find(*query)
-        ],
+        )
+        for a in client.find(*query)
+    ]
+    return create_page(
+        [html_link("Genres", ".."), genre], {"genre": genre}, ul(*thelist)
     )
 
 
 def url_dates(*, client, path, query):
     dates = [a["originaldate"] for a in client.list("originaldate")]
-    return create_list_page(
-        "Dates",
-        None,
-        [li(html_link("None" if a == "" else a, a)) for a in reversed(sorted(dates))],
-    )
+    thelist = [
+        li(html_link("None" if a == "" else a, a)) for a in reversed(sorted(dates))
+    ]
+    return create_page("Dates", None, ul(*thelist))
 
 
 def url_dates_date(date, *, client, path, query):
-    return create_list_page(
-        [html_link("Dates", ".."), date],
-        {"originaldate": date},
-        [
-            li(
-                f"{a['artist']} - {a['album']} - "
-                + html_link(
-                    a["title"], ("mpd", "file", a["file"]), root=True, folder=False
-                )
-            )
-            for a in api.list_titles(client, {"originaldate": date})
-        ],
+    thelist = [
+        li(
+            f"{a['artist']} - {a['album']} - "
+            + html_link(a["title"], ("mpd", "file", a["file"]), root=True, folder=False)
+        )
+        for a in api.list_titles(client, {"originaldate": date})
+    ]
+    return create_page(
+        [html_link("Dates", ".."), date], {"originaldate": date}, ul(*thelist)
     )
 
 
 def url_labels(*, client, path, query):
     labels = [a["label"] for a in client.list("label")]
-    return create_list_page(
-        "Labels",
-        None,
-        [li(html_link("None" if a == "" else a, a)) for a in labels],
-    )
+    thelist = [li(html_link("None" if a == "" else a, a)) for a in labels]
+    return create_page("Labels", None, ul(*thelist))
 
 
 def url_labels_label(label, *, client, path, query):
@@ -765,7 +756,7 @@ def url_labels_label(label, *, client, path, query):
         )
         for a in api.list_titles(client, data)
     ]
-    return create_list_page(header, data, thelist)
+    return create_page(header, data, ul(*thelist))
 
 
 def url_file(file, *, client, path, query):
