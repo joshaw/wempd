@@ -211,6 +211,7 @@ def song_info_table(song_info, minimal=False):
         (a, special_keys[a]) for a in special_keys.keys() if a in all_keys
     ] + ([] if minimal else sorted(zip(list(other_keys), list(other_keys))))
 
+    is_local = True
     for key, key_display in ordered_keys:
         value = song_info[key]
         href = None
@@ -231,6 +232,7 @@ def song_info_table(song_info, minimal=False):
             )
         elif key == "file":
             if value.startswith("http://") or value.startswith("https://"):
+                is_local = False
                 href = value
             else:
                 value = html_link(value, ("mpd", "file", value), root=True, folder=False)
@@ -239,7 +241,7 @@ def song_info_table(song_info, minimal=False):
         elif key == "label":
             href = ("mpd", "labels", value)
         elif key == "duration":
-            value = f"{fmt_time(float(value))} ({value})"
+            value = f"{fmt_time(float(value))} ({value})" if float(value) > 0 else None
         elif key == "musicbrainz_albumartistid":
             key = None
             href = f"https://musicbrainz.org/artist/{value}"
@@ -260,6 +262,8 @@ def song_info_table(song_info, minimal=False):
             key = None
             href = f"https://musicbrainz.org/track/{value}"
             links.append(html_link("MB Track ID", href, root=True))
+        elif key == "id":
+            value = None
 
         if href:
             value = html_link(value, href, root=True)
@@ -275,7 +279,7 @@ def song_info_table(song_info, minimal=False):
         thelist.append("<br/>")
     thelist.append("</p>")
 
-    if not minimal:
+    if not minimal and is_local:
         image_url = "/mpd/api/art?" + urlencode({"file": song_info["file"]})
         thelist.append(f"<p><a href={image_url}>Album art</a></p>")
     return thelist
