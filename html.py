@@ -759,16 +759,12 @@ def url_file(file, *, client, path, query):
 
 
 def url_add_trailing_slash(*parts, client, path, query):
-    query = urlencode(query)
-    if query:
-        query = f"?{query}"
+    query = f"?{urlencode(query)}" if query else query
     return [], {"location": f"/mpd{path}/{query}", "code": 301}
 
 
 def url_remove_trailing_slash(*parts, client, path, query):
-    query = urlencode(query)
-    if query:
-        query = f"?{query}"
+    query = f"?{urlencode(query)}" if query else query
     return [], {"location": f"/mpd{path.removesuffix('/')}{query}", "code": 301}
 
 
