@@ -33,13 +33,15 @@ def html_link(text, href, root=False, folder=True):
 
 
 def html_form_link(href, data, text):
-    data = json.dumps(data).replace('"', "&quot;")
-    return (
-        f'<form method="post" action="{href}">'
-        f'<input type="hidden" name="data" value="{data}" />'
-        f'<input type="submit" value="{text}" />'
-        "</form>"
-    )
+    return "".join([
+        f'<form method="post" action="{esc(href)}">',
+        f'<input type="submit" value="{esc(text)}" />',
+        *[
+            f'<input type="hidden" name="{esc(k)}" value="{esc(str(v))}" />'
+            for k, v in data.items()
+        ],
+        "</form>",
+    ])
 
 
 def get_header(client, path):
@@ -475,7 +477,7 @@ def url_queue_item(item, *, client, path, query):
         + [
             "<p>",
             html_form_link("/mpd/api/play", {"id": item}, "Play now"),
-            html_form_link("/mpd/api/remove", {"ids": [item]}, "Remove from queue"),
+            html_form_link("/mpd/api/remove", {"ids": item}, "Remove from queue"),
             "</p>",
         ]
         + song_info_table(song_info)

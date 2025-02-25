@@ -211,13 +211,11 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         path = remove_path_prefix(path_explode.path)
 
         length = int(self.headers["Content-Length"])
-
         post_data = self.rfile.read(length).decode("utf-8") or "{}"
         if self.headers["Content-Type"] == "application/x-www-form-urlencoded":
-            post_data = urllib.parse.parse_qs(post_data)
-            post_data = post_data["data"][0]
-
-        post_data = json.loads(post_data)
+            post_data = dict(urllib.parse.parse_qsl(post_data))
+        else:
+            post_data = json.loads(post_data)
 
         if path.startswith("/api/"):
             path = path.removeprefix("/api")
