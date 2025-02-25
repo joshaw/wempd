@@ -33,6 +33,7 @@ def catch_pipe_errors(func):
             func(*args, **kwargs)
         except BrokenPipeError:
             print("Caught BrokenPipeError, continuing")
+
     return trycatch
 
 
