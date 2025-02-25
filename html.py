@@ -86,6 +86,7 @@ def get_header(client, path):
         )
 
     status = client.status()
+    play_state = "Pause" if status["state"] == "play" else "Play"
 
     return [
         """<!DOCTYPE html>
@@ -127,51 +128,37 @@ def get_header(client, path):
         document.addEventListener("DOMContentLoaded", () => {
             Array.from(document.getElementsByTagName("form"))
             .filter(f => f.method === "post")
-            .map(f => {
-                f.addEventListener("submit", (event) => {
-                    event.preventDefault();
-                    fetch(event.target.action, {
-                        method: event.target.method,
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: new URLSearchParams(new FormData(f)),
-                    })
-                    .then(() => window.location.reload(true));
-                });
-            });
+            .map(f => f.addEventListener("submit", (event) => {
+                event.preventDefault();
+                fetch(event.target.action, {
+                    method: event.target.method,
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(new FormData(f)),
+                })
+                .then(() => window.location.reload(true));
+            }));
         });
         </script>
         </head>
         <body>
         """,
         div(
-            " ".join(
-                [
-                    html_form_link(
-                        "/mpd/api/pause",
-                        {},
-                        "Pause" if status["state"] == "play" else "Play",
-                    ),
-                    html_form_link("/mpd/api/previous", {}, "Prev"),
-                    html_form_link("/mpd/api/next", {}, "Next"),
-                    "&nbsp;Vol: ",
-                    status.get("volume", "unknown"),
-                    html_form_link("/mpd/api/volume", {"volume": -5}, f"-5"),
-                    html_form_link("/mpd/api/volume", {"volume": -1}, f"-1"),
-                    html_form_link("/mpd/api/volume", {"volume": 1}, f"+1"),
-                    html_form_link("/mpd/api/volume", {"volume": 5}, f"+5"),
-                ]
-            ),
+            html_form_link("/mpd/api/pause", {}, play_state),
+            " " + html_form_link("/mpd/api/previous", {}, "Prev"),
+            " " + html_form_link("/mpd/api/next", {}, "Next"),
+            "&nbsp;Vol: ",
+            " " + status.get("volume", "unknown"),
+            " " + html_form_link("/mpd/api/volume", {"volume": -5}, f"-5"),
+            " " + html_form_link("/mpd/api/volume", {"volume": -1}, f"-1"),
+            " " + html_form_link("/mpd/api/volume", {"volume": 1}, f"+1"),
+            " " + html_form_link("/mpd/api/volume", {"volume": 5}, f"+5"),
         ),
         div(
-            " | ".join(
-                [
-                    link("Status", "/status", "status", folder=False),
-                    link("Queue", "/queue/", "queue"),
-                    link("AlbumArtists", "/albumartists/", "albumartists"),
-                    link("Albums", "/albums/", "albums"),
-                    link("Playlists", "/playlists/", "playlists"),
-                ]
-            ),
+            link("Status", "/status", "status", folder=False),
+            " | " + link("Queue", "/queue/", "queue"),
+            " | " + link("AlbumArtists", "/albumartists/", "albumartists"),
+            " | " + link("Albums", "/albums/", "albums"),
+            " | " + link("Playlists", "/playlists/", "playlists"),
         ),
     ]
 
@@ -181,16 +168,16 @@ def create_page(header, data, thelist):
         header = " / ".join(header)
     if not isinstance(thelist, list):
         thelist = [thelist]
-    lines = [h2(header)]
-    if data:
-        lines.append(
-            p(
-                html_form_link("/mpd/api/insert", data, "Add after current"),
-                html_form_link("/mpd/api/append", data, "Append to queue"),
-            )
+    return [
+        h2(header),
+        p(
+            html_form_link("/mpd/api/insert", data, "Add after current"),
+            html_form_link("/mpd/api/append", data, "Append to queue"),
         )
-    lines.extend(thelist)
-    return lines
+        if data
+        else "",
+        *thelist,
+    ]
 
 
 def get_display(song):
