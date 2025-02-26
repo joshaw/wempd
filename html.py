@@ -117,6 +117,8 @@ def get_header(client, path):
             font-weight: bold;
             white-space: nowrap;
         }
+        a { text-decoration: none; }
+        a:hover { text-decoration: underline; }
         a[href^="http://"]::after, a[href^="https://"]::after {
             content: '↗';
             font-size: 65%;
