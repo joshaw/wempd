@@ -216,8 +216,9 @@ def song_info_table(song_info, minimal=False):
         "duration": "Duration",
         "file": "File",
     }
+    hidden_keys = ("artistsort", "albumartistsort", "id")
     all_keys = song_info.keys()
-    other_keys = set(all_keys).difference(special_keys.keys())
+    other_keys = set(all_keys).difference(special_keys.keys()).difference(hidden_keys)
 
     ordered_keys = [
         (a, special_keys[a]) for a in special_keys.keys() if a in all_keys
@@ -287,8 +288,6 @@ def song_info_table(song_info, minimal=False):
             key = None
             href = f"https://musicbrainz.org/track/{value}"
             links.append(html_link("MB Track ID", href, root=True))
-        elif key == "id":
-            value = None
 
         if href:
             value = html_link(value, href, root=True)
