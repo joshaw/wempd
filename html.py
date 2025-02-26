@@ -23,11 +23,14 @@ def esc(s):
     return s
 
 
-def tag_factory(name):
+def tag_factory(name, void=False):
     def __tag(*children, **attrs):
         if len(children) == 1 and isinstance(children[0], list):
             children = children[0]
         attrs = " ".join(f'{k}="{v}"' for k, v in attrs.items())
+        if void:
+            assert len(children) == 0
+            return f"<{name} {attrs}>"
         return f"<{name} {attrs}>{''.join(children)}</{name}>"
 
     __tag.__name__ = name
@@ -35,23 +38,23 @@ def tag_factory(name):
     return __tag
 
 
-for tag in (
-    "a",
-    "div",
-    "em",
-    "form",
-    "h2",
-    "input_",
-    "li",
-    "ol",
-    "p",
-    "strong",
-    "table",
-    "td",
-    "tr",
-    "ul",
-):
-    globals()[tag] = tag_factory(tag.removesuffix("_"))
+for tag, isvoid in {
+    "a": False,
+    "div": False,
+    "em": False,
+    "form": False,
+    "h2": False,
+    "input_": True,
+    "li": False,
+    "ol": False,
+    "p": False,
+    "strong": False,
+    "table": False,
+    "td": False,
+    "tr": False,
+    "ul": False,
+}.items():
+    globals()[tag] = tag_factory(tag.removesuffix("_"), isvoid)
 
 
 def html_link(text, href, root=False, folder=True):
