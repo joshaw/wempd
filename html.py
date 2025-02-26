@@ -177,6 +177,7 @@ def create_page(header, data, thelist):
         h2(header),
         p(
             html_form_link("/mpd/api/insert", data, "Add after current"),
+            " ",
             html_form_link("/mpd/api/append", data, "Append to queue"),
         )
         if data
@@ -299,8 +300,9 @@ def song_info_table(song_info, minimal=False):
 
     thelist = [
         table(*info_entries),
-        p(*[link + "<br/>" for link in links]),
     ]
+    if links:
+        thelist.append(p(*[link + "<br/>" for link in links]))
 
     if not minimal and is_local:
         image_url = "/mpd/api/art?" + urlencode({"file": song_info["file"]})
@@ -617,7 +619,7 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
     }
 
     def sort_func(a):
-        return a["title"] if all_tracks or not a["track"] else int(a["track"])
+        return a["title"] if all_tracks or not a.get("track") else int(a["track"])
 
     thelist = []
     for a in sorted(api.list_titles(client, data), key=sort_func):
