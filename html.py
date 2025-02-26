@@ -8,7 +8,7 @@ from urllib.parse import quote_plus, unquote_plus, urlencode
 import api
 
 
-BASE_MUSIC_URL = os.getenv("WEMPD_BASE_MUSIC_URL")
+BASE_MUSIC_URL = os.getenv("WEMPD_BASE_MUSIC_URL", "/")
 
 icon_tick = "✓"
 icon_cross = "✗"
@@ -413,14 +413,14 @@ def url_status(*, client, path, query):
             ),
         ),
         form(
-            input_(name="s", placeholder="Search term"),
+            input_(name="s", placeholder="Search term", minlength=3, required=""),
             " ",
             input_(type="submit", value="Search"),
             action="/mpd/search",
         ),
         "<br><br>",
         form(
-            input_(name="entry", placeholder="Add to queue"),
+            input_(name="entry", placeholder="Add to queue", required=""),
             " ",
             input_(type="submit", value="Add"),
             action="/mpd/api/add",
@@ -473,7 +473,7 @@ def url_outputs(*, client, path, query):
 
 
 def url_current(*, client, path, query):
-    return [h2("Current Song")] + song_info_table(client.currentsong()), get_refresh(
+    return [h2("Current Song"), *song_info_table(client.currentsong())], get_refresh(
         client.status()
     )
 
@@ -482,24 +482,20 @@ def url_queue(*, client, path, query):
     queue = api.list_queue(client)
     items = []
     for index, song in enumerate(queue):
-        album = song.get("album", "")
         artist, title = get_display(song)
-
-        current = "current" if "current" in song else ""
-        song_link = html_link(title, str(index), folder=False)
-
-        play_now = ""
-        if not current:
-            play_now = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play")
-
+        play_link = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play")
         items.append(
             tr(
                 td(str(index)),
-                td(play_now),
-                td(song_link, "<br/>", f"{artist} - {album}"),
-                id=current,
+                td("" if "current" in song else play_link),
+                td(
+                    html_link(title, str(index), folder=False),
+                    f"<br/>{artist} - {song.get('album', '')}",
+                ),
+                id="current" if "current" in song else "",
             )
         )
+
     return [
         h2(f"Queue ({len(queue)})"),
         html_form_link("/mpd/api/clear", {}, "Clear queue"),
@@ -589,18 +585,20 @@ def url_artists_artist(style, artist, *, client, path, query):
     if is_random:
         artist = random.choice(client.list(artist_type))[artist_type]
 
+    albums = api.list_albums(client, {artist_type: artist})
+
+    all_link = (
+        ""
+        if len(albums) <= 1
+        else li(em(html_link("All", ("..", artist, "_all") if is_random else "_all")))
+    )
+
     return create_page(
-        [
-            html_link(artist_type.title(), ".."),
-            f"Random: {artist}" if is_random else artist,
-        ],
+        [html_link(artist_type.title(), ".."), artist],
         {"artist": artist},
         ul(
-            li(em(html_link("All", ("..", artist, "_all") if is_random else "_all"))),
-            *[
-                li(html_link(a, ("..", artist, a) if is_random else a))
-                for a in api.list_albums(client, {artist_type: artist})
-            ],
+            all_link,
+            *[li(html_link(a, ("..", artist, a) if is_random else a)) for a in albums],
         ),
     )
 
@@ -613,19 +611,19 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
         html_link(artist, ".."),
         "All tracks" if all_tracks else album,
     ]
-    data = {
-        artist_type: artist,
-        "album": None if all_tracks else album,
-    }
+    data = {artist_type: artist, "album": None if all_tracks else album}
 
     def sort_func(a):
         return a["title"] if all_tracks or not a.get("track") else int(a["track"])
 
-    thelist = []
-    for a in sorted(api.list_titles(client, data), key=sort_func):
-        link = html_link(a["title"], a["file"], folder=False)
-        thelist.append(li(link, value=a["track"] if a.get("track") else ""))
-
+    thelist = [
+        li(
+            f"{a['artist']} - ",
+            html_link(a["title"], a["file"], folder=False),
+            value=a["track"] if a.get("track") else "",
+        )
+        for a in sorted(api.list_titles(client, data), key=sort_func)
+    ]
     return create_page(header, data, ul(thelist) if all_tracks else ol(thelist))
 
 
@@ -661,17 +659,13 @@ def url_albums_album(album, *, client, path, query):
     data = {"album": album}
     thelist = [
         li(
-            (f"{a['artist']} - " if is_random else "")
-            + html_link(a["title"], a["file"], folder=False),
+            f"{a['artist']} - ",
+            html_link(a["title"], a["file"], folder=False),
             value=a["track"],
         )
         for a in api.list_titles(client, data)
     ]
-    return create_page(
-        [html_link("Albums", ".."), f"Random: {album}" if is_random else album],
-        data,
-        ol(*thelist),
-    )
+    return create_page([html_link("Albums", ".."), album], data, ol(*thelist))
 
 
 def url_albums_album_track(album, file, *, client, path, query):
