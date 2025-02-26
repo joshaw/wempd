@@ -408,22 +408,19 @@ def url_status(*, client, path, query):
                 ]
             ),
         ),
-        p(
-            form(
-                input_(name="s", placeholder="Search term"),
-                " ",
-                input_(type="submit", value="Search"),
-                action="/mpd/search",
-            )
+        form(
+            input_(name="s", placeholder="Search term"),
+            " ",
+            input_(type="submit", value="Search"),
+            action="/mpd/search",
         ),
-        p(
-            form(
-                input_(name="entry", placeholder="Add to queue"),
-                " ",
-                input_(type="submit", value="Add"),
-                action="/mpd/api/add",
-                method="post",
-            )
+        "<br><br>",
+        form(
+            input_(name="entry", placeholder="Add to queue"),
+            " ",
+            input_(type="submit", value="Add"),
+            action="/mpd/api/add",
+            method="post",
         ),
     ], get_refresh(status)
 
