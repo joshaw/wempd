@@ -281,7 +281,7 @@ def song_info_table(song_info, minimal=False):
                     value, ("mpd", "file", value), root=True, folder=False
                 )
         elif key == "originaldate":
-            href = ("mpd", "dates", value)
+            href = ("mpd", "dates", value[:4])
         elif key == "label":
             href = ("mpd", "labels", value)
         elif key == "duration":
@@ -696,7 +696,7 @@ def url_genres_genre(genre, *, client, path, query):
 
 
 def url_dates(*, client, path, query):
-    dates = [a["originaldate"] for a in client.list("originaldate")]
+    dates = set(a["originaldate"][:4] for a in client.list("originaldate"))
     thelist = [
         li(html_link("None" if a == "" else a, a)) for a in reversed(sorted(dates))
     ]
@@ -704,9 +704,11 @@ def url_dates(*, client, path, query):
 
 
 def url_dates_date(date, *, client, path, query):
-    data = {"originaldate": date}
-    thelist = [display_album_artist_title(a) for a in api.list_titles(client, data)]
-    return create_page([html_link("Dates", ".."), date], data, ul(*thelist))
+    query = ("originaldate", "") if date == "" else (f"(originaldate contains '{date}')",)
+    thelist = [display_album_artist_title(a) for a in client.find(*query)]
+    return create_page(
+        [html_link("Dates", ".."), date], {"originaldate": date}, ul(*thelist)
+    )
 
 
 def url_labels(*, client, path, query):
