@@ -691,7 +691,7 @@ def url_genres_genre(genre, *, client, path, query):
     query = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
     thelist = [display_album_artist_title(a) for a in client.find(*query)]
     return create_page(
-        [html_link("Genres", ".."), genre], {"genre": genre}, ul(*thelist)
+        [html_link("Genres", ".."), genre], None, ul(*thelist)
     )
 
 
@@ -707,7 +707,7 @@ def url_dates_date(date, *, client, path, query):
     query = ("originaldate", "") if date == "" else (f"(originaldate contains '{date}')",)
     thelist = [display_album_artist_title(a) for a in client.find(*query)]
     return create_page(
-        [html_link("Dates", ".."), date], {"originaldate": date}, ul(*thelist)
+        [html_link("Dates", ".."), date], None, ul(*thelist)
     )
 
 
