@@ -501,7 +501,7 @@ def url_queue(*, client, path, query):
         h2(f"Queue ({len(queue)})"),
         html_form_link("/mpd/api/clear", {}, "Clear queue"),
         table(*items),
-    ]
+    ], get_refresh(client.status())
 
 
 def url_queue_item(item, *, client, path, query):
@@ -518,7 +518,7 @@ def url_queue_item(item, *, client, path, query):
             html_form_link("/mpd/api/remove", {"ids": item}, "Remove from queue"),
         ),
         *song_info_table(song_info),
-    ]
+    ], get_refresh(client.status())
 
 
 def url_search(*, client, path, query):
