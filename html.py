@@ -524,6 +524,7 @@ def url_queue_item(item, *, client, path, query):
         h2(header),
         p(
             html_form_link("/mpd/api/play", {"id": item}, "Play now"),
+            " ",
             html_form_link("/mpd/api/remove", {"ids": item}, "Remove from queue"),
         ),
         *song_info_table(song_info),
