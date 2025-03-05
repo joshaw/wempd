@@ -96,6 +96,7 @@ def get_header(client, path):
         <head>
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <meta name="color-scheme" content="dark light" />
         <link rel="icon" type="image/png" sizes="32x32" href="/mpd/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="96x96" href="/mpd/favicon-96x96.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/mpd/favicon-16x16.png">
@@ -126,7 +127,7 @@ def get_header(client, path):
         }
         #current {
             font-weight: bold;
-            background: #f0f0f0;
+            background: Field;
         }
         </style>
         <script>
