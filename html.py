@@ -596,7 +596,7 @@ def url_artists_artist(style, artist, *, client, path, query):
     if is_random:
         artist = random.choice(client.list(artist_type))[artist_type]
 
-    albums = api.list_albums(client, {artist_type: artist})
+    albums = client.list("album", artist_type, artist, "group", "originaldate")
 
     all_link = (
         ""
@@ -609,7 +609,16 @@ def url_artists_artist(style, artist, *, client, path, query):
         {"artist": artist},
         ul(
             all_link,
-            *[li(html_link(a, ("..", artist, a) if is_random else a)) for a in albums],
+            *[
+                li(
+                    html_link(
+                        a["album"],
+                        ("..", artist, a["album"]) if is_random else a["album"],
+                    ),
+                    f" ({a['originaldate'][:4]})" if a["originaldate"] else ""
+                )
+                for a in albums
+            ],
         ),
     )
 
