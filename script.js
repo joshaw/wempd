@@ -519,23 +519,24 @@ function populate_song_info(all_status) {
 
 // TODO: move
 function artist_links(song, el) {
-	if (song.artist === song.albumartist) {
-		const locate_func = window.artist_mode === 'artist' ? locate_artist : locate_albumartist
-		return E('a', {href: '#', onclick: () => locate_func(song)}, song.artist || '')
+    if (song.artist === song.albumartist) {
+        const locate_func = window.artist_mode === 'artist' ? locate_artist : locate_albumartist;
+        return E('a', {href: '#', onclick: () => locate_func(song)}, song.artist || song.albumartist || 'Unknown Artist');
+    } else if (window.artist_mode === 'artist') {
+        return E('span', {}, [
+            E('a', {href: '#', onclick: () => locate_artist(song)}, song.artist || song.albumartist || 'Unknown Artist'),
+            song.albumartist ? ` (${song.albumartist})` : '',
+        ]);
+    }
 
-	} else if (window.artist_mode === 'artist') {
-		return E('span', {}, [
-			E('a', {href: '#', onclick: () => locate_artist(song)}, song.artist || ''),
-			` (${song.albumartist || ''})`,
-		])
-	}
-
-	return E('span', {}, [
-		song.artist || '',
-		' (',
-		E('a', {href: '#', onclick: () => locate_albumartist(song)}, song.albumartist || ''),
-		')',
-	])
+    return E('span', {}, [
+        E('a', {href: '#', onclick: () => locate_artist(song)}, song.artist || song.albumartist || 'Unknown Artist'),
+        song.albumartist ? ' (' : '',
+        song.albumartist 
+            ? E('a', {href: '#', onclick: () => locate_albumartist(song)}, song.albumartist) 
+            : '',
+        song.albumartist ? ')' : '',
+    ]);
 }
 
 function populate_search_results(queue) {
