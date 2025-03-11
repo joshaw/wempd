@@ -598,29 +598,41 @@ def url_artists_artist(style, artist, *, client, path, query):
 
     albums = client.list("album", artist_type, artist, "group", "originaldate")
 
-    all_link = (
-        ""
-        if len(albums) <= 1
-        else li(em(html_link("All", ("..", artist, "_all") if is_random else "_all")))
-    )
+    if len(albums) == 1 and not is_random:
+        return [], {"location": f"./{albums[0]['album']}/", "code": 302}
 
     return create_page(
         [html_link(artist_type.title(), ".."), artist],
-        {"artist": artist},
+        {artist_type: artist},
         ul(
-            all_link,
+            li(em(html_link("All", ("..", artist, "_all") if is_random else "_all"))),
             *[
                 li(
                     html_link(
                         a["album"],
                         ("..", artist, a["album"]) if is_random else a["album"],
                     ),
-                    f" ({a['originaldate'][:4]})" if a["originaldate"] else ""
+                    f" ({a['originaldate'][:4]})" if a["originaldate"] else "",
                 )
                 for a in albums
             ],
         ),
     )
+
+
+def url_artists_artist_all(style, artist, *, client, path, query):
+    artist_type = f"{style}artist"
+    header = [
+        html_link(artist_type.title(), ("..", "..")),
+        html_link(artist, ".."),
+        "All tracks",
+    ]
+    data = {artist_type: artist}
+    thelist = [
+        display_artist_title(a)
+        for a in sorted(api.list_titles(client, data), key=lambda x: x["title"])
+    ]
+    return create_page(header, data, ul(thelist))
 
 
 def url_artists_artist_album(style, artist, album, *, client, path, query):
@@ -629,16 +641,16 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
     header = [
         html_link(artist_type.title(), ("..", "..")),
         html_link(artist, ".."),
-        "All tracks" if all_tracks else album,
+        album,
     ]
     data = {artist_type: artist, "album": None if all_tracks else album}
 
-    def sort_func(a):
-        return a["title"] if all_tracks or not a.get("track") else int(a["track"])
-
     thelist = [
         display_artist_title(a)
-        for a in sorted(api.list_titles(client, data), key=sort_func)
+        for a in sorted(
+            api.list_titles(client, data),
+            key=lambda a: int(a["track"]) if a.get("track") else a["title"],
+        )
     ]
     return create_page(header, data, ul(thelist) if all_tracks else ol(thelist))
 
@@ -772,6 +784,7 @@ matcher = {
     "/(album|)artists/": url_artists,
     "/(album|)artists/([^/]+)": url_add_trailing_slash,
     "/(album|)artists/([^/]+)/": url_artists_artist,
+    "/(album|)artists/([^/]+)/_all/": url_artists_artist_all,
     "/(album|)artists/([^/]+)/([^/]+)": url_add_trailing_slash,
     "/(album|)artists/([^/]+)/([^/]+)/": url_artists_artist_album,
     "/(album|)artists/([^/]+)/([^/]+)/([^/]+)": url_artists_artist_album_track,
