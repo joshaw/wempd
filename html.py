@@ -222,7 +222,7 @@ def get_refresh(status):
 def song_info_table(song_info, minimal=False):
     info_entries = []
 
-    common_keys = {
+    common_tags = {
         "title": "Title",
         "album": "Album",
         "artist": "Artist",
@@ -233,7 +233,7 @@ def song_info_table(song_info, minimal=False):
         "duration": "Duration",
         "file": "File",
     }
-    mb_keys = {
+    mb_tags = {
         "musicbrainz_albumartistid": ("artist", "AlbumArtist"),
         "musicbrainz_albumid": ("album", "Album"),
         "musicbrainz_artistid": ("artist", "Artist"),
@@ -241,18 +241,18 @@ def song_info_table(song_info, minimal=False):
         "musicbrainz_trackid": ("recording", "Recording"),
         "musicbrainz_workid": ("work", "Work"),
     }
-    hidden_keys = ("artistsort", "albumartistsort", "id")
-    all_keys = song_info.keys()
-    other_keys = (
-        set(all_keys) - set(common_keys.keys()) - set(hidden_keys) - set(mb_keys.keys())
+    hidden_tags = ("artistsort", "albumartistsort", "id")
+    all_tags = song_info.keys()
+    other_tags = (
+        set(all_tags) - set(common_tags.keys()) - set(hidden_tags) - set(mb_tags.keys())
     )
 
-    ordered_keys = [
-        (a, common_keys[a]) for a in common_keys.keys() if a in all_keys
-    ] + ([] if minimal else sorted(zip(list(other_keys), list(other_keys))))
+    ordered_tags = [
+        (a, common_tags[a]) for a in common_tags.keys() if a in all_tags
+    ] + ([] if minimal else sorted(zip(list(other_tags), list(other_tags))))
 
     is_local = True
-    for key, key_display in ordered_keys:
+    for key, key_display in ordered_tags:
         value = song_info[key]
         href = None
         if key == "artist":
@@ -305,7 +305,7 @@ def song_info_table(song_info, minimal=False):
     thelist = [table(*info_entries)]
 
     mb_links = []
-    for key, value in mb_keys.items():
+    for key, value in mb_tags.items():
         if key in song_info:
             href = f"https://musicbrainz.org/{value[0]}/{song_info[key]}"
             mb_links.append(
