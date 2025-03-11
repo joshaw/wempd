@@ -668,13 +668,18 @@ def url_artists_artist_album_track(style, artist, album, file, *, client, path, 
 
 
 def url_albums(*, client, path, query):
-    albums = [a["album"] for a in client.list("album")]
     return create_page(
         "Albums",
         {},
         ul(
             li(em(html_link("Random", "_random"))),
-            *[li(html_link(a, a)) for a in albums],
+            *[
+                li(html_link(a["album"], a["album"]), " - ", a["albumartist"])
+                for a in sorted(
+                    client.list("album", "group", "albumartist"),
+                    key=lambda x: x["album"],
+                )
+            ],
         ),
     )
 
@@ -711,9 +716,7 @@ def url_genres(*, client, path, query):
 def url_genres_genre(genre, *, client, path, query):
     query = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
     thelist = [display_album_artist_title(a) for a in client.find(*query)]
-    return create_page(
-        [html_link("Genres", ".."), genre], None, ul(*thelist)
-    )
+    return create_page([html_link("Genres", ".."), genre], None, ul(*thelist))
 
 
 def url_dates(*, client, path, query):
@@ -725,11 +728,11 @@ def url_dates(*, client, path, query):
 
 
 def url_dates_date(date, *, client, path, query):
-    query = ("originaldate", "") if date == "" else (f"(originaldate contains '{date}')",)
-    thelist = [display_album_artist_title(a) for a in client.find(*query)]
-    return create_page(
-        [html_link("Dates", ".."), date], None, ul(*thelist)
+    query = (
+        ("originaldate", "") if date == "" else (f"(originaldate contains '{date}')",)
     )
+    thelist = [display_album_artist_title(a) for a in client.find(*query)]
+    return create_page([html_link("Dates", ".."), date], None, ul(*thelist))
 
 
 def url_labels(*, client, path, query):
@@ -752,12 +755,12 @@ def url_file(file, *, client, path, query):
 
 
 def url_add_trailing_slash(*parts, client, path, query):
-    query = f"?{urlencode(query)}" if query else query
+    query = f"?{urlencode(query)}" if query else ""
     return [], {"location": f"/mpd{path}/{query}", "code": 301}
 
 
 def url_remove_trailing_slash(*parts, client, path, query):
-    query = f"?{urlencode(query)}" if query else query
+    query = f"?{urlencode(query)}" if query else ""
     return [], {"location": f"/mpd{path.removesuffix('/')}{query}", "code": 301}
 
 
