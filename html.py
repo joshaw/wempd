@@ -38,6 +38,7 @@ def tag_factory(name, void=False):
 
 for tag, isvoid in {
     "a": False,
+    "code": False,
     "div": False,
     "em": False,
     "form": False,
@@ -220,9 +221,8 @@ def get_refresh(status):
 
 def song_info_table(song_info, minimal=False):
     info_entries = []
-    links = []
 
-    special_keys = {
+    common_keys = {
         "title": "Title",
         "album": "Album",
         "artist": "Artist",
@@ -233,12 +233,22 @@ def song_info_table(song_info, minimal=False):
         "duration": "Duration",
         "file": "File",
     }
+    mb_keys = {
+        "musicbrainz_albumartistid": ("artist", "AlbumArtist"),
+        "musicbrainz_albumid": ("album", "Album"),
+        "musicbrainz_artistid": ("artist", "Artist"),
+        "musicbrainz_releasetrackid": ("track", "Track"),
+        "musicbrainz_trackid": ("recording", "Recording"),
+        "musicbrainz_workid": ("work", "Work"),
+    }
     hidden_keys = ("artistsort", "albumartistsort", "id")
     all_keys = song_info.keys()
-    other_keys = set(all_keys).difference(special_keys.keys()).difference(hidden_keys)
+    other_keys = (
+        set(all_keys) - set(common_keys.keys()) - set(hidden_keys) - set(mb_keys.keys())
+    )
 
     ordered_keys = [
-        (a, special_keys[a]) for a in special_keys.keys() if a in all_keys
+        (a, common_keys[a]) for a in common_keys.keys() if a in all_keys
     ] + ([] if minimal else sorted(zip(list(other_keys), list(other_keys))))
 
     is_local = True
@@ -285,26 +295,6 @@ def song_info_table(song_info, minimal=False):
             href = ("mpd", "labels", value)
         elif key == "duration":
             value = f"{fmt_time(float(value))} ({value})" if float(value) > 0 else None
-        elif key == "musicbrainz_albumartistid":
-            key = None
-            href = f"https://musicbrainz.org/artist/{value}"
-            links.append(html_link("MB AlbumArtist ID", href, root=True))
-        elif key == "musicbrainz_albumid":
-            key = None
-            href = f"https://musicbrainz.org/album/{value}"
-            links.append(html_link("MB Album ID", href, root=True))
-        elif key == "musicbrainz_artistid":
-            key = None
-            href = f"https://musicbrainz.org/artist/{value}"
-            links.append(html_link("MB Artist ID", href, root=True))
-        elif key == "musicbrainz_trackid":
-            key = None
-            href = f"https://musicbrainz.org/recording/{value}"
-            links.append(html_link("MB Recording ID", href, root=True))
-        elif key == "musicbrainz_releasetrackid":
-            key = None
-            href = f"https://musicbrainz.org/track/{value}"
-            links.append(html_link("MB Track ID", href, root=True))
 
         if href:
             value = html_link(value, href, root=True)
@@ -313,8 +303,17 @@ def song_info_table(song_info, minimal=False):
             info_entries.append(tr(td(key_display), td(value)))
 
     thelist = [table(*info_entries)]
-    if links:
-        thelist.append(p(*[link + "<br/>" for link in links]))
+
+    mb_links = []
+    for key, value in mb_keys.items():
+        if key in song_info:
+            href = f"https://musicbrainz.org/{value[0]}/{song_info[key]}"
+            mb_links.append(
+                tr(td(f"MB {value[1]}"), td(code(html_link(song_info[key], href))))
+            )
+
+    if not minimal and mb_links:
+        thelist.append("<br>" + table(*mb_links))
 
     if not minimal and is_local:
         image_url = "/mpd/api/art?" + urlencode({"file": song_info["file"]})
