@@ -59,7 +59,7 @@ for tag, isvoid in {
 def html_link(text, href, root=False, folder=True):
     if isinstance(href, str):
         href = (href,)
-    if href[0].startswith("http://") or href[0].startswith("https://"):
+    if href[0].startswith(("http://", "https://")):
         href = "/".join(h.replace("'", "%27") for h in href)
     else:
         href = "/".join((quote_plus(h) for h in href))
@@ -283,7 +283,7 @@ def song_info_table(song_info, minimal=False):
                 ]
             )
         elif key == "file":
-            if value.startswith("http://") or value.startswith("https://"):
+            if value.startswith(("http://", "https://")):
                 is_local = False
                 href = value
             else:
