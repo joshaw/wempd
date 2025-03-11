@@ -312,9 +312,7 @@ def song_info_table(song_info, minimal=False):
         if key is not None and value is not None:
             info_entries.append(tr(td(key_display), td(value)))
 
-    thelist = [
-        table(*info_entries),
-    ]
+    thelist = [table(*info_entries)]
     if links:
         thelist.append(p(*[link + "<br/>" for link in links]))
 
