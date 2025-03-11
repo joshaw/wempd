@@ -1,3 +1,4 @@
+import json
 import mpd
 import os
 
@@ -158,6 +159,12 @@ def insert(client, query, append=False):
     elif query.get("file"):
         client.addid(query["file"], start_pos)
         count += 1
+
+    elif "find" in query:
+        find = json.loads(query["find"])
+        for i, song in enumerate(client.find(*find), start=start_pos):
+            client.addid(song["file"], i)
+            count += 1
 
     else:
         pairs = info_pairs(query)

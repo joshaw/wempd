@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import re
@@ -598,7 +599,7 @@ def url_artists_artist(style, artist, *, client, path, query):
 
     return create_page(
         [html_link(artist_type.title(), ".."), artist],
-        {artist_type: artist},
+        {"find": json.dumps([artist_type, artist])},
         ul(
             li(em(html_link("All", ("..", artist, "_all") if is_random else "_all"))),
             *[
@@ -622,12 +623,12 @@ def url_artists_artist_all(style, artist, *, client, path, query):
         html_link(artist, ".."),
         "All tracks",
     ]
-    data = {artist_type: artist}
+    data = (artist_type, artist)
     thelist = [
         display_artist_title(a)
-        for a in sorted(client.find(artist_type, artist), key=lambda x: x["title"])
+        for a in sorted(client.find(*data), key=lambda x: x["title"])
     ]
-    return create_page(header, data, ul(thelist))
+    return create_page(header, {"find": json.dumps(data)}, ul(thelist))
 
 
 def url_artists_artist_album(style, artist, album, *, client, path, query):
@@ -638,16 +639,18 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
         html_link(artist, ".."),
         album,
     ]
-    data = {artist_type: artist, "album": None if all_tracks else album}
 
+    data = (artist_type, artist, "album", None if all_tracks else album)
     thelist = [
         display_artist_title(a)
         for a in sorted(
-            client.find(artist_type, artist, "album", None if all_tracks else album),
+            client.find(*data),
             key=lambda a: int(a["track"]) if a.get("track") else a["title"],
         )
     ]
-    return create_page(header, data, ul(thelist) if all_tracks else ol(thelist))
+    return create_page(
+        header, {"find": json.dumps(data)}, ul(thelist) if all_tracks else ol(thelist)
+    )
 
 
 def url_artists_artist_album_track(style, artist, album, file, *, client, path, query):
@@ -667,7 +670,7 @@ def url_artists_artist_album_track(style, artist, album, file, *, client, path, 
 def url_albums(*, client, path, query):
     return create_page(
         "Albums",
-        {},
+        None,
         ul(
             li(em(html_link("Random", "_random"))),
             *[
@@ -686,9 +689,11 @@ def url_albums_album(album, *, client, path, query):
     if is_random:
         album = random.choice(client.list("album"))["album"]
 
-    data = {"album": album}
-    thelist = [display_artist_title(a) for a in client.find("album", album)]
-    return create_page([html_link("Albums", ".."), album], data, ol(*thelist))
+    data = ("album", album)
+    thelist = [display_artist_title(a) for a in client.find(*data)]
+    return create_page(
+        [html_link("Albums", ".."), album], {"find": json.dumps(data)}, ol(*thelist)
+    )
 
 
 def url_albums_album_track(album, file, *, client, path, query):
@@ -712,9 +717,11 @@ def url_genres(*, client, path, query):
 
 
 def url_genres_genre(genre, *, client, path, query):
-    query = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
-    thelist = [display_album_artist_title(a) for a in client.find(*query)]
-    return create_page([html_link("Genres", ".."), genre], None, ul(*thelist))
+    data = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
+    thelist = [display_album_artist_title(a) for a in client.find(*data)]
+    return create_page(
+        [html_link("Genres", ".."), genre], {"find": json.dumps(data)}, ul(*thelist)
+    )
 
 
 def url_dates(*, client, path, query):
@@ -726,11 +733,13 @@ def url_dates(*, client, path, query):
 
 
 def url_dates_date(date, *, client, path, query):
-    query = (
+    data = (
         ("originaldate", "") if date == "" else (f"(originaldate contains '{date}')",)
     )
-    thelist = [display_album_artist_title(a) for a in client.find(*query)]
-    return create_page([html_link("Dates", ".."), date], None, ul(*thelist))
+    thelist = [display_album_artist_title(a) for a in client.find(*data)]
+    return create_page(
+        [html_link("Dates", ".."), date], {"find": json.dumps(data)}, ul(*thelist)
+    )
 
 
 def url_labels(*, client, path, query):
@@ -740,9 +749,11 @@ def url_labels(*, client, path, query):
 
 
 def url_labels_label(label, *, client, path, query):
-    data = {"label": label}
-    thelist = [display_album_artist_title(a) for a in client.find("label", label)]
-    return create_page([html_link("Labels", ".."), label], data, ul(*thelist))
+    data = ("label", label)
+    thelist = [display_album_artist_title(a) for a in client.find(*data)]
+    return create_page(
+        [html_link("Labels", ".."), label], {"find": json.dumps(data)}, ul(*thelist)
+    )
 
 
 def url_file(file, *, client, path, query):
