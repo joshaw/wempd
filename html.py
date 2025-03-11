@@ -223,12 +223,13 @@ def song_info_table(song_info, minimal=False):
     info_entries = []
 
     common_tags = {
+        "track": "Track",
         "title": "Title",
         "album": "Album",
         "artist": "Artist",
         "albumartist": "Album Artist",
         "genre": "Genre",
-        "originaldate": "Year",
+        "originaldate": "Original Date",
         "label": "Label",
         "duration": "Duration",
         "file": "File",
