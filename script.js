@@ -521,21 +521,21 @@ function populate_song_info(all_status) {
 function artist_links(song, el) {
 	if (song.artist === song.albumartist) {
 		const locate_func = window.artist_mode === 'artist' ? locate_artist : locate_albumartist
-		return E('a', {href: '#', onclick: () => locate_func(song)}, song.artist || '')
+		return E('a', {href: '#', onclick: () => locate_func(song)}, song.artist || 'Unknown artist')
 	}
 
 	if (window.artist_mode === 'artist') {
 		return E('span', {}, [
 			E('a', {href: '#', onclick: () => locate_artist(song)}, song.artist || ''),
-			` (${song.albumartist || ''})`,
+			song.albumartist ? ` (${song.albumartist})` : ''
 		])
 	}
 
 	return E('span', {}, [
 		song.artist || '',
-		' (',
-		E('a', {href: '#', onclick: () => locate_albumartist(song)}, song.albumartist || ''),
-		')',
+		...(song.albumartist
+			? [' (', E('a', {href: '#', onclick: () => locate_albumartist(song)}, song.albumartist), ')']
+			: [''])
 	])
 }
 
