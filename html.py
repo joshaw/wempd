@@ -325,16 +325,6 @@ def song_info_table(song_info, minimal=False):
     return thelist
 
 
-def create_song_page(client, header, data):
-    try:
-        song_info = client.find(*api.info_pairs(data))[0]
-    except IndexError:
-        return [h2("Page not found"), p(data)], {"code": 404}
-
-    header.append(song_info["title"])
-    return create_page(header, data, song_info_table(song_info))
-
-
 def fmt_duration(s):
     yrs = int(s / 31536000)
     s = s % 31536000
@@ -571,10 +561,11 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
 
 
 def url_playlists_playlist_track(playlist, file, *, client, path, query):
-    return create_song_page(
-        client,
-        [html_link("Playlists", ".."), html_link(playlist, ".")],
+    song_info = client.find("file", file)[0]
+    return create_page(
+        [html_link("Playlists", ".."), html_link(playlist, "."), song_info["title"]],
         {"file": file},
+        song_info_table(song_info),
     )
 
 
@@ -656,14 +647,16 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
 
 
 def url_artists_artist_album_track(style, artist, album, file, *, client, path, query):
-    return create_song_page(
-        client,
+    song_info = client.find("file", file)[0]
+    return create_page(
         [
             html_link(f"{style}artist".title(), ("..", "..")),
             html_link(artist, ".."),
             html_link("All tracks" if album == "_all" else album, "."),
+            song_info["title"],
         ],
         {"file": file},
+        song_info_table(song_info),
     )
 
 
@@ -695,10 +688,11 @@ def url_albums_album(album, *, client, path, query):
 
 
 def url_albums_album_track(album, file, *, client, path, query):
-    return create_song_page(
-        client,
-        [html_link("Albums", ".."), html_link(album, ".")],
+    song_info = client.find("file", file)[0]
+    return create_page(
+        [html_link("Albums", ".."), html_link(album, "."), song_info["title"]],
         {"file": file},
+        song_info_table(song_info),
     )
 
 
