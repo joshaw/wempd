@@ -186,15 +186,17 @@ def create_page(header, data, thelist):
     ]
 
 
-def get_display(song):
-    artist = song.get("albumartist", song.get("artist", ""))
-    name = song.get("title")
-    if not name or len(name) <= 1:
-        name = song.get("name")
-    if not name or len(name) <= 1:
-        name = song["file"]
+def get_title(s):
+    title = s.get("title")
+    if not title or len(title) <= 1:
+        title = s.get("name")
+    if not title or len(title) <= 1:
+        title = s["file"]
+    return title
 
-    return artist, name
+
+def get_artist(s):
+    return s.get("albumartist", s.get("artist", ""))
 
 
 def display_artist_title(s):
@@ -483,7 +485,8 @@ def url_queue(*, client, path, query):
 
     items = []
     for index, song in enumerate(queue):
-        artist, title = get_display(song)
+        artist = get_artist(song)
+        title = get_title(song)
         play_link = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play")
         items.append(
             tr(
@@ -551,7 +554,8 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
     header = [html_link("Playlists", ".."), playlist_name]
     thelist = []
     for song in client.listplaylistinfo(playlist_name):
-        artist, name = get_display(song)
+        artist = get_artist(song)
+        name = get_title(song)
         link = html_link(name, song["file"], folder=False)
         if artist:
             thelist.append(li(f"{artist} - {link}"))
