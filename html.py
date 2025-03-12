@@ -648,13 +648,14 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
     ]
 
     data = (artist_type, artist, "album", None if all_tracks else album)
-    thelist = [
-        display_artist_title(a)
-        for a in sorted(
-            client.find(*data),
-            key=lambda a: int(a["track"]) if a.get("track") else a["title"],
-        )
-    ]
+    songs = sorted(
+        client.find(*data),
+        key=lambda a: int(a["track"]) if a.get("track") else a["title"],
+    )
+    if len(set(a["artist"] for a in songs)) == 1:
+        thelist = [li_title(a) for a in songs]
+    else:
+        thelist = [li_artist_title(a) for a in songs]
     return create_page(
         header, {"find": data}, ul(thelist) if all_tracks else ol(thelist)
     )
@@ -697,7 +698,13 @@ def url_albums_album(album, *, client, path, query):
         album = random.choice(client.list("album"))["album"]
 
     data = ("album", album)
-    thelist = [display_artist_title(a) for a in client.find(*data)]
+    songs = client.find(*data)
+    artists = set(a["artist"] for a in songs)
+    if len(artists) == 1:
+        album = f"{album} - {artists.pop()}"
+        thelist = [li_title(a) for a in songs]
+    else:
+        thelist = [li_artist_title(a) for a in songs]
     return create_page([html_link("Albums", ".."), album], {"find": data}, ol(*thelist))
 
 
