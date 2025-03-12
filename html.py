@@ -199,18 +199,24 @@ def get_artist(s):
     return s.get("albumartist", s.get("artist", ""))
 
 
-def display_artist_title(s):
+def li_title(s):
+    return li(
+        html_link(get_title(s), s["file"], folder=False), value=s.get("track", "")
+    )
+
+
+def li_artist_title(s):
     return li(
         f"{s['artist']} - ",
-        html_link(s["title"], s["file"], folder=False),
+        html_link(get_title(s), s["file"], folder=False),
         value=s.get("track", ""),
     )
 
 
-def display_album_artist_title(s):
+def li_album_artist_title(s):
     return li(
         f"{s['artist']} - {s['album']} - "
-        + html_link(s["title"], ("mpd", "file", s["file"]), root=True, folder=False)
+        + html_link(get_title(s), ("mpd", "file", s["file"]), root=True, folder=False)
     )
 
 
@@ -627,8 +633,7 @@ def url_artists_artist_all(style, artist, *, client, path, query):
     ]
     data = (artist_type, artist)
     thelist = [
-        display_artist_title(a)
-        for a in sorted(client.find(*data), key=lambda x: x["title"])
+        li_artist_title(a) for a in sorted(client.find(*data), key=lambda x: x["title"])
     ]
     return create_page(header, {"find": data}, ul(thelist))
 
@@ -718,7 +723,7 @@ def url_genres(*, client, path, query):
 
 def url_genres_genre(genre, *, client, path, query):
     data = ("genre", "") if genre == "" else (f"(genre contains '{genre}')",)
-    thelist = [display_album_artist_title(a) for a in client.find(*data)]
+    thelist = [li_album_artist_title(a) for a in client.find(*data)]
     return create_page([html_link("Genres", ".."), genre], {"find": data}, ul(*thelist))
 
 
@@ -734,7 +739,7 @@ def url_dates_date(date, *, client, path, query):
     data = (
         ("originaldate", "") if date == "" else (f"(originaldate contains '{date}')",)
     )
-    thelist = [display_album_artist_title(a) for a in client.find(*data)]
+    thelist = [li_album_artist_title(a) for a in client.find(*data)]
     return create_page([html_link("Dates", ".."), date], {"find": data}, ul(*thelist))
 
 
@@ -746,7 +751,7 @@ def url_labels(*, client, path, query):
 
 def url_labels_label(label, *, client, path, query):
     data = ("label", label)
-    thelist = [display_album_artist_title(a) for a in client.find(*data)]
+    thelist = [li_album_artist_title(a) for a in client.find(*data)]
     return create_page([html_link("Labels", ".."), label], {"find": data}, ul(*thelist))
 
 
