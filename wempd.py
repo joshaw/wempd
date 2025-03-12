@@ -214,7 +214,16 @@ class MPDRequestHandler(http.server.BaseHTTPRequestHandler):
         length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(length).decode("utf-8") or "{}"
         if self.headers["Content-Type"] == "application/x-www-form-urlencoded":
-            post_data = dict(urllib.parse.parse_qsl(post_data))
+            def jsonload(x):
+                try:
+                    return json.loads(x)
+                except json.decoder.JSONDecodeError:
+                    return x
+
+            post_data = {
+                key: jsonload(value)
+                for key, value in urllib.parse.parse_qsl(post_data)
+            }
         else:
             post_data = json.loads(post_data)
 

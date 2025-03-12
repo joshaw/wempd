@@ -161,8 +161,7 @@ def insert(client, query, append=False):
         count += 1
 
     elif "find" in query:
-        find = json.loads(query["find"])
-        for i, song in enumerate(client.find(*find), start=start_pos):
+        for i, song in enumerate(client.find(*query["find"]), start=start_pos):
             client.addid(song["file"], i)
             count += 1
 
