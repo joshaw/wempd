@@ -378,7 +378,9 @@ def url_status(*, client, path, query):
         html_form_link("/mpd/api/volume", {"volume": c}, f"{c:+}") + " "
         for c in (-10, -5, -1, 1, 5, 10)
     ]
-    position = f"{fmt_time(float(status['elapsed']))}/{fmt_time(float(status['duration']))}"
+    position = "-"
+    if "elapsed" in status and "duration" in status:
+        position = f"{fmt_time(float(status['elapsed']))}/{fmt_time(float(status['duration']))}"
     state = {"pause": "paused", "play": "playing", "stop": "stopped"}[status["state"]]
     return [
         h2(f"Current Song - {state}"),
