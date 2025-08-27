@@ -140,9 +140,14 @@ def get_header(client, path):
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: new URLSearchParams(new FormData(f)),
                 })
-                .then(() => window.location.reload(true));
+                .then(() => window.location.reload())
             }));
         });
+
+        // Reload page when returning from a different tab
+        document.addEventListener("visibilitychange",
+            () => document.hidden ? null : window.location.reload()
+        )
         </script>
         </head>
         <body>
