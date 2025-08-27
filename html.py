@@ -655,7 +655,7 @@ def url_artists_artist_album(style, artist, album, *, client, path, query):
     data = (artist_type, artist, "album", None if all_tracks else album)
     songs = sorted(
         client.find(*data),
-        key=lambda a: int(a["track"]) if a.get("track") else a["title"],
+        key=lambda a: a["track"].rjust(4) if "track" in a else a["title"],
     )
     if len(set(a["artist"] for a in songs)) == 1:
         thelist = [li_title(a) for a in songs]
