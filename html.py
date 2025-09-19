@@ -387,12 +387,13 @@ def url_status(*, client, path, query):
     if "elapsed" in status and "duration" in status:
         position = f"{fmt_time(float(status['elapsed']))}/{fmt_time(float(status['duration']))}"
     state = {"pause": "paused", "play": "playing", "stop": "stopped"}[status["state"]]
+    cur_song = client.currentsong()
     return [
-        h2(f"Current Song - {state}"),
-        *song_info_table(client.currentsong(), minimal=True),
+        h2(f"{cur_song["title"]} ({cur_song["artist"]})"),
+        *song_info_table(cur_song, minimal=True),
         h2("Status"),
         table(
-            tr(td("State"), td(status["state"])),
+            tr(td("State"), td(state)),
             tr(td("Position"), td(position, colspan=2)),
             tr(
                 td("Volume"),
