@@ -17,9 +17,9 @@ def init_client(client):
     client = mpd.MPDClient()
     client.connect(hostname, port)
 
-    sock_name = client._sock.getpeername()
-    print(f"Connected to mpd on: {sock_name[0]}:{sock_name[1]}")
-    print(f"MPD version: {client.mpd_version}")
+    #sock_name = client._sock.getpeername()
+    #print(f"Connected to mpd on: {sock_name[0]}:{sock_name[1]}")
+    #print(f"MPD version: {client.mpd_version}")
     return client
 
 
