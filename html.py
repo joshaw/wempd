@@ -276,18 +276,21 @@ def song_info_table(song_info, minimal=False):
         elif key == "album":
             href = ("mpd", "albums", value)
         elif key == "title":
-            value = html_link(
-                value,
-                (
-                    "mpd",
-                    "albumartists",
-                    song_info["albumartist"],
-                    song_info["album"],
-                    song_info["file"],
-                ),
-                root=True,
-                folder=False,
-            )
+            try:
+                value = html_link(
+                    value,
+                    (
+                        "mpd",
+                        "albumartists",
+                        song_info["albumartist"],
+                        song_info["album"],
+                        song_info["file"],
+                    ),
+                    root=True,
+                    folder=False,
+                )
+            except KeyError:
+                pass
         elif key == "genre":
             value = " / ".join(
                 [
