@@ -558,10 +558,10 @@ def url_search(*, client, path, query):
     thelist = []
     if query and len(query) >= 3:
         for song in client.search("any", query):
-            href = ("artists", song["artist"], song["album"], song["file"])
+            href = ("artists", song["artist"], song.get("album", ""), song["file"])
             thelist.append(
                 li(
-                    esc(f"{song['artist']} - {song['album']} - "),
+                    esc(f"{song['artist']} - {song.get('album', '')} - "),
                     html_link(song["title"], href, folder=False),
                 )
             )
@@ -703,7 +703,7 @@ def url_albums(*, client, path, query):
         ul(
             li(em(html_link("Random", "_random"))),
             *[
-                li(html_link(a["album"], a["album"]), " - ", a["albumartist"])
+                li(html_link(a["album"] if a["album"] else "none", a["album"]), " - ", a["albumartist"])
                 for a in sorted(
                     client.list("album", "group", "albumartist"),
                     key=lambda x: x["album"],
@@ -824,14 +824,14 @@ matcher = {
     "/(album|)artists/([^/]+)": url_add_trailing_slash,
     "/(album|)artists/([^/]+)/": url_artists_artist,
     "/(album|)artists/([^/]+)/_all/": url_artists_artist_all,
-    "/(album|)artists/([^/]+)/([^/]+)": url_add_trailing_slash,
-    "/(album|)artists/([^/]+)/([^/]+)/": url_artists_artist_album,
-    "/(album|)artists/([^/]+)/([^/]+)/([^/]+)": url_artists_artist_album_track,
+    "/(album|)artists/([^/]+)/([^/]*)": url_add_trailing_slash,
+    "/(album|)artists/([^/]+)/([^/]*)/": url_artists_artist_album,
+    "/(album|)artists/([^/]+)/([^/]*)/([^/]+)": url_artists_artist_album_track,
     "/albums": url_add_trailing_slash,
     "/albums/": url_albums,
     "/albums/([^/]+)": url_add_trailing_slash,
-    "/albums/([^/]+)/": url_albums_album,
-    "/albums/([^/]+)/([^/]+)": url_albums_album_track,
+    "/albums/([^/]*)/": url_albums_album,
+    "/albums/([^/]*)/([^/]+)": url_albums_album_track,
     "/genres": url_add_trailing_slash,
     "/genres/": url_genres,
     "/genres/([^/]*)": url_add_trailing_slash,
