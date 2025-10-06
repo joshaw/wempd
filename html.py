@@ -251,6 +251,7 @@ def song_info_table(song_info, minimal=False):
         "musicbrainz_albumartistid": ("artist", "AlbumArtist"),
         "musicbrainz_albumid": ("album", "Album"),
         "musicbrainz_artistid": ("artist", "Artist"),
+        "musicbrainz_releasegroupid": ("release-group", "Release Group"),
         "musicbrainz_releasetrackid": ("track", "Track"),
         "musicbrainz_trackid": ("recording", "Recording"),
         "musicbrainz_workid": ("work", "Work"),
