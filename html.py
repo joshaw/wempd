@@ -180,13 +180,15 @@ def create_page(header, data, thelist):
         thelist = [thelist]
     return [
         h2(header),
-        p(
-            html_form_link("/mpd/api/insert", data, "Add after current"),
-            " ",
-            html_form_link("/mpd/api/append", data, "Append to queue"),
-        )
-        if data
-        else "",
+        (
+            p(
+                html_form_link("/mpd/api/insert", data, "Add after current"),
+                " ",
+                html_form_link("/mpd/api/append", data, "Append to queue"),
+            )
+            if data
+            else ""
+        ),
         *thelist,
     ]
 
@@ -431,9 +433,11 @@ def url_status(*, client, path, query):
             strong(html_link("Outputs", "outputs"), ": "),
             " ".join(
                 [
-                    f"[{output['outputname']}]"
-                    if output["outputenabled"] == "1"
-                    else output["outputname"]
+                    (
+                        f"[{output['outputname']}]"
+                        if output["outputenabled"] == "1"
+                        else output["outputname"]
+                    )
                     for output in client.outputs()
                 ]
             ),
@@ -582,8 +586,7 @@ def url_playlists_playlist(playlist_name, *, client, path, query):
     thelist = []
     for song in client.listplaylistinfo(playlist_name):
         artist = get_artist(song)
-        name = get_title(song)
-        link = html_link(name, song["file"], folder=False)
+        link = html_link(get_title(song), song["file"], folder=False)
         if artist:
             thelist.append(li(f"{artist} - {link}"))
         else:
@@ -703,7 +706,11 @@ def url_albums(*, client, path, query):
         ul(
             li(em(html_link("Random", "_random"))),
             *[
-                li(html_link(a["album"] if a["album"] else "none", a["album"]), " - ", a["albumartist"])
+                li(
+                    html_link(a["album"] if a["album"] else "none", a["album"]),
+                    " - ",
+                    a["albumartist"],
+                )
                 for a in sorted(
                     client.list("album", "group", "albumartist"),
                     key=lambda x: x["album"],
