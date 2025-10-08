@@ -491,7 +491,7 @@ def url_outputs(*, client, path, query):
     return [
         h2("Outputs"),
         table(
-            *[
+            *(
                 tr(
                     td(o["outputname"]),
                     td(o["plugin"]),
@@ -499,7 +499,7 @@ def url_outputs(*, client, path, query):
                     td(toggle(o)),
                 )
                 for o in client.outputs()
-            ]
+            )
         ),
     ]
 
@@ -612,10 +612,10 @@ def url_artists(style, *, client, path, query):
         None,
         ul(
             li(em(html_link("Random", "_random"))),
-            *[
+            *(
                 li(html_link(a[artist_type], a[artist_type]))
                 for a in client.list(artist_type)
-            ],
+            ),
         ),
     )
 
@@ -636,7 +636,7 @@ def url_artists_artist(style, artist, *, client, path, query):
         {"find": [artist_type, artist]},
         ul(
             li(em(html_link("All", ("..", artist, "_all") if is_random else "_all"))),
-            *[
+            *(
                 li(
                     html_link(
                         a["album"],
@@ -645,7 +645,7 @@ def url_artists_artist(style, artist, *, client, path, query):
                     f" ({a['originaldate'][:4]})" if a["originaldate"] else "",
                 )
                 for a in albums
-            ],
+            ),
         ),
     )
 
