@@ -145,9 +145,11 @@ def get_header(client, path):
         });
 
         // Reload page when returning from a different tab
-        document.addEventListener("visibilitychange",
-            () => document.hidden ? null : window.location.reload()
-        )
+        const path = location.pathname
+        if (path.includes("/queue") || path.includes("/status"))
+            document.addEventListener("visibilitychange",
+                () => document.hidden ? null : location.reload()
+            )
         </script>
         </head>
         <body>
