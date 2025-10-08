@@ -722,10 +722,14 @@ def url_albums(*, client, path, query):
     )
 
 
+_album_list = []
 def url_albums_album(album, *, client, path, query):
     is_random = album == "_random"
     if is_random:
-        album = random.choice(client.list("album"))["album"]
+        global _album_list
+        if len(_album_list) == 0:
+            _album_list = client.list("album")
+        album = random.choice(_album_list)["album"]
 
     data = ("album", album)
     songs = client.find(*data)
