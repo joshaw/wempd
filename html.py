@@ -110,7 +110,6 @@ def get_header(client, path):
             word-break: break-word;
             font-family: sans-serif;
         }
-        div { line-height: 2em; }
         li { line-height: 1.2; }
         form { display: inline-block; }
         table td:first-child {
@@ -123,6 +122,13 @@ def get_header(client, path):
             content: '↗';
             font-size: 65%;
             vertical-align: text-top;
+        }
+        #controls {
+            margin-bottom: 1em;
+            & input {
+                height: 3em;
+                min-width: 3em;
+            }
         }
         #current {
             font-weight: bold;
@@ -164,6 +170,7 @@ def get_header(client, path):
             " " + html_form_link("/mpd/api/volume", {"volume": -1}, "-1"),
             " " + html_form_link("/mpd/api/volume", {"volume": 1}, "+1"),
             " " + html_form_link("/mpd/api/volume", {"volume": 5}, "+5"),
+            id="controls"
         ),
         div(
             link("Status", "/status", "status", folder=False),
