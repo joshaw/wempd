@@ -525,7 +525,7 @@ def url_queue(*, client, path, query):
 
     items = []
     for index, song in enumerate(queue):
-        artist = get_artist(song)
+        artist = song.get("artist", "")
         title = get_title(song)
         play_link = html_form_link("/mpd/api/play", {"id": song["pos"]}, "Play")
         items.append(
